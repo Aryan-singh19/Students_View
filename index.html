@@ -3,80 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classroom Video Tracker</title>
+    <title>Theory of Computation - Course Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --danger: #c0392b; --light: #ecf0f1; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
-        
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: var(--primary); margin-bottom: 5px; }
-        p.subtitle { text-align: center; color: #7f8c8d; margin-top: 0; }
-
-        /* Video Container */
-        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; background: #000; margin-bottom: 20px; border-radius: 8px; overflow: hidden; }
-        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-        /* Cheat Warning */
-        #cheat-alert { 
-            background: #ffcdd2; color: #c62828; padding: 15px; text-align: center; 
-            font-weight: bold; border-radius: 5px; margin-bottom: 20px; display: none; border: 1px solid #ef9a9a;
+        :root {
+            --bg-dark: #0f0f0f;
+            --bg-panel: #1e1e1e;
+            --bg-hover: #303030;
+            --text-main: #ffffff;
+            --text-mute: #aaaaaa;
+            --brand: #ff0000;
+            --success: #2ba640;
+            --border: #333;
         }
 
-        /* Stats Grid */
-        .stats-box { border: 1px solid #eee; border-radius: 8px; padding: 15px; }
-        .stats-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-        
-        .video-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
-        .video-row:hover { background-color: #f9f9f9; }
-        .video-row.active { background-color: #e3f2fd; border-left: 4px solid #2196f3; }
-        
-        .status-badge { font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; }
-        .status-good { color: var(--success); background: #e8f5e9; }
-        .status-bad { color: var(--danger); background: #ffebee; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; overflow-x: hidden; }
 
-        /* Buttons */
-        .btn { background-color: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; }
-        .btn:hover { background-color: #34495e; }
+        /* HEADER */
+        header {
+            background: rgba(15, 15, 15, 0.98);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; letter-spacing: -0.5px; }
+        .logo svg { height: 24px; fill: var(--brand); }
+        .user-pill { background: #3ea6ff; color: #000; padding: 4px 12px; border-radius: 18px; font-size: 0.8rem; font-weight: 600; }
+
+        /* LAYOUT */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+            padding: 24px;
+            max-width: 1800px;
+            margin: 0 auto;
+            height: calc(100vh - 60px);
+        }
+
+        /* VIDEO PLAYER */
+        .main-col { display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
+        .player-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .player-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* OVERLAYS */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .overlay h2 { color: var(--brand); margin-bottom: 10px; }
+        .btn {
+            background: #3ea6ff; color: #0f0f0f; border: none; padding: 10px 24px;
+            font-weight: 600; border-radius: 2px; cursor: pointer; text-transform: uppercase;
+        }
+        .btn:hover { background: #65b8ff; }
+
+        /* INFO AREA */
+        .info-area { margin-top: 16px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+        h1.video-title { font-size: 1.25rem; margin: 0 0 8px 0; font-weight: 600; }
+        .video-stats { display: flex; justify-content: space-between; color: var(--text-mute); font-size: 0.9rem; }
+
+        /* TABS */
+        .tabs { display: flex; gap: 20px; margin-top: 16px; }
+        .tab {
+            background: none; border: none; color: var(--text-mute);
+            font-size: 1rem; font-weight: 500; padding: 0 0 10px 0;
+            cursor: pointer; position: relative;
+        }
+        .tab.active { color: var(--text-main); }
+        .tab.active::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: var(--text-main); border-radius: 3px 3px 0 0;
+        }
+
+        /* ANALYTICS PANEL */
+        .panel { display: none; margin-top: 20px; background: var(--bg-panel); padding: 20px; border-radius: 12px; }
+        .panel.show { display: block; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: center; }
+        .big-num { font-size: 2.5rem; font-weight: 700; color: var(--brand); }
+        
+        .download-btn {
+            background: var(--bg-hover); color: var(--text-main);
+            width: 100%; padding: 15px; border: 1px solid var(--border);
+            border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            font-size: 1rem; font-weight: 600;
+        }
+        .download-btn:hover { background: #444; }
+
+        /* SIDEBAR PLAYLIST */
+        .sidebar {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+        .playlist-head { padding: 16px; border-bottom: 1px solid var(--border); font-weight: 700; display: flex; justify-content: space-between; }
+        .playlist-scroll { overflow-y: auto; flex: 1; }
+        
+        .playlist-item {
+            display: flex; gap: 10px; padding: 10px; cursor: pointer;
+            border-bottom: 1px solid transparent; transition: background 0.2s;
+        }
+        .playlist-item:hover { background: var(--bg-hover); }
+        .playlist-item.active { background: #303030; border-left: 4px solid var(--brand); }
+
+        .thumb {
+            width: 100px; height: 56px; background: #000; border-radius: 8px; 
+            position: relative; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; flex-shrink: 0;
+        }
+        .thumb-txt { color: #555; font-size: 1.5rem; }
+        .progress-overlay {
+            position: absolute; bottom: 0; left: 0; height: 4px; background: var(--brand); width: 0%;
+        }
+        .completed .progress-overlay { background: var(--success); }
+
+        .meta { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+        .meta-title { font-size: 0.9rem; font-weight: 500; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .meta-sub { font-size: 0.75rem; color: var(--text-mute); }
+
+        /* Responsive */
+        @media(max-width: 1000px) {
+            .grid-container { grid-template-columns: 1fr; height: auto; }
+            .sidebar { height: 500px; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>CS Class Video Tracker</h1>
-    <p class="subtitle">Watch the playlist below. Do not skip or switch tabs.</p>
+<header>
+    <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+        CourseTube
+    </div>
+    <div class="user-pill">Student View</div>
+</header>
 
-    <div id="cheat-alert">⚠️ TAB SWITCH DETECTED! Video Paused. Please stay on this tab to continue.</div>
+<div class="grid-container">
+    
+    <!-- LEFT: Player & Analytics -->
+    <div class="main-col">
+        
+        <div class="player-wrapper">
+            <div id="player"></div>
+            <!-- Anti-Cheat Overlay -->
+            <div class="overlay" id="cheat-screen">
+                <h2>⚠️ Playback Paused</h2>
+                <p style="color:#ddd; margin-bottom: 20px;">Window focus lost. Please stay on this tab.</p>
+                <button class="btn" onclick="resume()">Resume Playback</button>
+            </div>
+        </div>
 
-    <div class="video-wrapper">
-        <div id="player"></div>
+        <div class="info-area">
+            <h1 class="video-title" id="main-title">Loading Course...</h1>
+            <div class="video-stats">
+                <span id="video-count-display">Video 1 / 19</span>
+                <span id="main-percent">0% Watched</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="setTab('desc')">Overview</button>
+            <button class="tab" onclick="setTab('analytics')">📊 Analytics & Download</button>
+        </div>
+
+        <!-- Tab 1 -->
+        <div id="tab-desc" class="panel show">
+            <p style="color:var(--text-mute); line-height: 1.6;">
+                Welcome to the <b>Theory of Computation</b> playlist. 
+                This tracker automatically saves your progress. Do not skip segments.
+            </p>
+        </div>
+
+        <!-- Tab 2 -->
+        <div id="tab-analytics" class="panel">
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="big-num" id="total-stat">0%</div>
+                    <div style="color:var(--text-mute); font-size:0.8rem;">COURSE COMPLETION</div>
+                </div>
+                <div class="stat-card">
+                    <div class="big-num" id="watched-stat">0</div>
+                    <div style="color:var(--text-mute); font-size:0.8rem;">VIDEOS FINISHED</div>
+                </div>
+            </div>
+            
+            <button class="download-btn" onclick="downloadReport()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                Download Progress Report (.txt)
+            </button>
+        </div>
+
     </div>
 
-    <div class="stats-box">
-        <div class="stats-header">
-            <h3>Your Progress Report</h3>
-            <button class="btn" onclick="copyReport()">📋 Copy Report to Send</button>
+    <!-- RIGHT: Playlist -->
+    <div class="sidebar">
+        <div class="playlist-head">
+            <span>Theory of Computation</span>
+            <span style="color:var(--text-mute); font-weight:400;">Learning Lab</span>
         </div>
-        <div id="report-list">
-            <p style="color: #666; text-align: center;"><i>Load the video to see your checklist...</i></p>
+        <div class="playlist-scroll" id="playlist-container">
+            <!-- Items injected via JS -->
         </div>
     </div>
+
 </div>
 
 <script>
-    // --- CONFIGURATION ---
-    const PLAYLIST_ID = 'PL424dCM7s48ngY-ylr6rKDhZC-eojZyOT'; // Your Playlist
-    const STORAGE_KEY = 'student_tracker_v1';
+    // --- CONFIG ---
+    const PLAYLIST_ID = 'PL424dCM7s48ngY-ylr6rKDhZC-eojZyOT';
+    const STORAGE_KEY = 'toc_tracker_final';
 
-    // --- STATE MANAGEMENT ---
-    var player;
-    var timer;
-    var currentVideoIndex = -1;
+    // THE LIST YOU PROVIDED (Cleaned up)
+    const VIDEOS = [
+        "01 Intro to Grammar & Recursively Enumerable",
+        "02 Language Generated by Grammar (Ex 1)",
+        "03 Language Generated by Grammar (Ex 2)",
+        "04 Language Generated by Grammar (Ex 3)",
+        "05 RLG to LLG 1",
+        "06 LLG to RLG",
+        "07 Elimination of Useless Symbols (TOC)",
+        "08 Context Free Grammar",
+        "09 Push Down Automata",
+        "10 Practice Questions PDA and NPDA",
+        "11 Conversion of CFG to PDA",
+        "12 Turing Machine",
+        "13 Turing Machine: Practice Questions",
+        "14 Intro to Recursively Enumerable Sets",
+        "15 Undecidability & Comp. Classes",
+        "16 Universal Turing Machine",
+        "17 Computational Classes",
+        "18 Sequence Detector (Moore & Mealy)",
+        "19 Master PDA to CFG Conversion"
+    ];
+
+    // --- STATE ---
+    var player, timer;
+    var currentIndex = -1;
     var currentDuration = 0;
-    
-    // Data structure: { videoIndex: [1, 0, 1, 1...] } (1 = watched second)
-    var progressData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    var progress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-    // --- YOUTUBE API SETUP ---
+    // --- SETUP ---
     var tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -84,71 +272,71 @@
 
     function onYouTubeIframeAPIReady() {
         player = new YT.Player('player', {
-            height: '100%',
-            width: '100%',
-            playerVars: {
-                listType: 'playlist',
-                list: PLAYLIST_ID,
-                modestbranding: 1,
-                rel: 0
-            },
+            height: '100%', width: '100%',
+            playerVars: { listType: 'playlist', list: PLAYLIST_ID, rel: 0, modestbranding: 1 },
             events: {
-                'onStateChange': onPlayerStateChange,
-                'onReady': onPlayerReady
+                'onReady': initApp,
+                'onStateChange': onStateChange
             }
         });
     }
 
-    function onPlayerReady(event) {
-        // Wait for user interaction
+    function initApp() {
+        renderSidebar();
+        updateAnalytics();
     }
 
-    function onPlayerStateChange(event) {
+    function onStateChange(event) {
         if (event.data == YT.PlayerState.PLAYING) {
-            checkVideoChange();
+            detectVideoChange();
             startTracking();
+            document.getElementById('cheat-screen').style.display = 'none';
+        } else if (event.data == YT.PlayerState.CUED) {
+            renderSidebar();
         } else {
             stopTracking();
         }
     }
 
-    // --- TRACKING CORE ---
-    function checkVideoChange() {
-        var newIndex = player.getPlaylistIndex();
+    // --- CORE TRACKING ---
+    function detectVideoChange() {
+        let idx = player.getPlaylistIndex();
         
-        // Setup new video context if changed
-        if (newIndex !== currentVideoIndex || currentDuration === 0) {
-            currentVideoIndex = newIndex;
+        // Sync Sidebar Selection
+        document.querySelectorAll('.playlist-item').forEach(e => e.classList.remove('active'));
+        let activeEl = document.getElementById(`item-${idx}`);
+        if(activeEl) {
+            activeEl.classList.add('active');
+            activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        if (idx !== currentIndex || currentDuration === 0) {
+            currentIndex = idx;
             currentDuration = Math.floor(player.getDuration());
             
-            // Initialize storage bucket if not exists
-            if (!progressData[currentVideoIndex]) {
-                progressData[currentVideoIndex] = new Array(currentDuration).fill(0);
-            }
-            // If duration changed (playlist load delay), resize array preserving data
-            else if (progressData[currentVideoIndex].length < currentDuration) {
-                let old = progressData[currentVideoIndex];
-                progressData[currentVideoIndex] = new Array(currentDuration).fill(0);
-                for(let i=0; i<old.length; i++) progressData[currentVideoIndex][i] = old[i];
+            // Init Memory
+            if (!progress[currentIndex]) progress[currentIndex] = new Array(currentDuration).fill(0);
+            else if (progress[currentIndex].length < currentDuration) {
+                // Resize array if needed
+                let old = progress[currentIndex];
+                progress[currentIndex] = new Array(currentDuration).fill(0);
+                for(let i=0; i<old.length; i++) progress[currentIndex][i] = old[i];
             }
             
-            renderReport();
+            updateMainInfo();
         }
     }
 
     function startTracking() {
-        stopTracking();
-        timer = setInterval(function() {
-            var time = Math.floor(player.getCurrentTime());
-            
-            if (progressData[currentVideoIndex] && time < progressData[currentVideoIndex].length) {
-                // Mark second as watched (1)
-                progressData[currentVideoIndex][time] = 1;
+        clearInterval(timer);
+        timer = setInterval(() => {
+            let t = Math.floor(player.getCurrentTime());
+            if (progress[currentIndex] && t < progress[currentIndex].length) {
+                progress[currentIndex][t] = 1;
                 
-                // Save to LocalStorage (Persist on Refresh)
-                if (time % 5 === 0) { // Save every 5s to avoid spam
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData));
-                    updateLiveUI();
+                if (t % 2 === 0) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+                    updateUIRealTime();
                 }
             }
         }, 1000);
@@ -156,72 +344,127 @@
 
     function stopTracking() {
         clearInterval(timer);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData)); // Force save on pause
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+        updateAnalytics();
     }
 
-    // --- UI & REPORTING ---
-    function getPercent(index) {
-        if (!progressData[index]) return 0;
-        let watched = progressData[index].filter(x => x === 1).length;
-        let total = progressData[index].length;
-        return total === 0 ? 0 : ((watched / total) * 100).toFixed(1);
-    }
-
-    function renderReport() {
-        const list = document.getElementById('report-list');
+    // --- UI RENDERING ---
+    function renderSidebar() {
+        const list = document.getElementById('playlist-container');
         list.innerHTML = '';
         
-        // We iterate based on data we have. 
-        // Note: YouTube API doesn't give total playlist count easily until we play them,
-        // so we list what we have tracked so far.
-        Object.keys(progressData).sort((a,b) => a-b).forEach(idx => {
-            let pct = getPercent(idx);
-            let isGood = pct > 90;
-            let row = document.createElement('div');
+        VIDEOS.forEach((title, i) => {
+            let el = document.createElement('div');
+            el.className = 'playlist-item';
+            el.id = `item-${i}`;
+            el.onclick = () => player.playVideoAt(i);
             
-            row.className = 'video-row ' + (idx == currentVideoIndex ? 'active' : '');
-            row.id = 'row-' + idx;
-            row.innerHTML = `
-                <span>Video #${parseInt(idx) + 1}</span>
-                <span class="status-badge ${isGood ? 'status-good' : 'status-bad'}">${pct}%</span>
+            let pct = getPct(i);
+            let isDone = pct > 95;
+            
+            el.innerHTML = `
+                <div class="thumb ${isDone?'completed':''}">
+                    <span class="thumb-txt">▶</span>
+                    <div class="progress-overlay" style="width:${pct}%" id="bar-${i}"></div>
+                </div>
+                <div class="meta">
+                    <div class="meta-title">${i+1}. ${title}</div>
+                    <div class="meta-sub" id="sub-${i}">${pct}% Watched</div>
+                </div>
             `;
-            list.appendChild(row);
+            list.appendChild(el);
         });
     }
 
-    function updateLiveUI() {
-        let row = document.getElementById('row-' + currentVideoIndex);
-        if (row) {
-            let pct = getPercent(currentVideoIndex);
-            let badge = row.querySelector('.status-badge');
-            badge.innerText = pct + '%';
-            badge.className = `status-badge ${pct > 90 ? 'status-good' : 'status-bad'}`;
-        }
+    function updateMainInfo() {
+        let title = VIDEOS[currentIndex] || `Video ${currentIndex+1}`;
+        document.getElementById('main-title').innerText = title;
+        document.getElementById('video-count-display').innerText = `Video ${currentIndex + 1} of ${VIDEOS.length}`;
     }
 
-    // --- ANTI-CHEAT ---
+    function updateUIRealTime() {
+        let pct = getPct(currentIndex);
+        document.getElementById('main-percent').innerText = `${pct}% Watched`;
+        
+        // Update Sidebar Bar
+        let bar = document.getElementById(`bar-${currentIndex}`);
+        let sub = document.getElementById(`sub-${currentIndex}`);
+        if(bar) bar.style.width = `${pct}%`;
+        if(sub) sub.innerText = `${pct}% Watched`;
+    }
+
+    function updateAnalytics() {
+        let totalSum = 0;
+        let completedCount = 0;
+        
+        VIDEOS.forEach((_, i) => {
+            let p = parseFloat(getPct(i));
+            totalSum += p;
+            if(p > 95) completedCount++;
+        });
+
+        let totalAvg = (totalSum / VIDEOS.length).toFixed(1);
+        document.getElementById('total-stat').innerText = `${totalAvg}%`;
+        document.getElementById('watched-stat').innerText = `${completedCount} / ${VIDEOS.length}`;
+    }
+
+    function getPct(i) {
+        if(!progress[i]) return 0;
+        let watched = progress[i].filter(x => x===1).length;
+        let total = progress[i].length;
+        return total === 0 ? 0 : ((watched/total)*100).toFixed(0);
+    }
+
+    // --- UTILS ---
+    window.setTab = function(t) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(`tab-${t}`).classList.add('show');
+        event.target.classList.add('active');
+        
+        if(t === 'analytics') updateAnalytics();
+    }
+
+    window.resume = function() {
+        document.getElementById('cheat-screen').style.display = 'none';
+        player.playVideo();
+    }
+
+    window.downloadReport = function() {
+        let txt = "THEORY OF COMPUTATION - PROGRESS REPORT\n";
+        txt += "---------------------------------------\n";
+        txt += `Date: ${new Date().toLocaleString()}\n`;
+        txt += `Total Completion: ${document.getElementById('total-stat').innerText}\n\n`;
+        
+        VIDEOS.forEach((title, i) => {
+            let p = getPct(i);
+            let status = p > 95 ? "[x] COMPLETED" : "[ ] IN PROGRESS";
+            txt += `${status} | ${p}% | ${title}\n`;
+        });
+
+        let blob = new Blob([txt], { type: "text/plain" });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = "TOC_Progress_Report.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Anti-Cheat
     document.addEventListener("visibilitychange", function() {
-        if (document.hidden) {
-            if (player && player.pauseVideo) player.pauseVideo();
-            document.getElementById('cheat-alert').style.display = 'block';
-        } else {
-            document.getElementById('cheat-alert').style.display = 'none';
+        if (document.hidden && player && player.getPlayerState() === 1) {
+            player.pauseVideo();
+            document.getElementById('cheat-screen').style.display = 'flex';
         }
     });
 
-    // --- EXPORT FUNCTION ---
-    window.copyReport = function() {
-        let text = "My Video Progress Report:\n-------------------------\n";
-        Object.keys(progressData).sort((a,b) => a-b).forEach(idx => {
-            text += `Video ${parseInt(idx)+1}: ${getPercent(idx)}%\n`;
-        });
-        text += "\nSent from Class Tracker.";
-        
-        navigator.clipboard.writeText(text).then(() => {
-            alert("Report copied! Paste it in your email or chat to submit.");
-        });
-    }
 </script>
 
 </body>
 </html>
+
+
+
