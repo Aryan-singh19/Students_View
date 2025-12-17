@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Video Tracker</title>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #c0392b; --light: #ecf0f1; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+        
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #7f8c8d; margin-top: 0; }
+
+        /* Video Container */
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; background: #000; margin-bottom: 20px; border-radius: 8px; overflow: hidden; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* Cheat Warning */
+        #cheat-alert { 
+            background: #ffcdd2; color: #c62828; padding: 15px; text-align: center; 
+            font-weight: bold; border-radius: 5px; margin-bottom: 20px; display: none; border: 1px solid #ef9a9a;
+        }
+
+        /* Stats Grid */
+        .stats-box { border: 1px solid #eee; border-radius: 8px; padding: 15px; }
+        .stats-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        
+        .video-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        .video-row:hover { background-color: #f9f9f9; }
+        .video-row.active { background-color: #e3f2fd; border-left: 4px solid #2196f3; }
+        
+        .status-badge { font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 0.9em; }
+        .status-good { color: var(--success); background: #e8f5e9; }
+        .status-bad { color: var(--danger); background: #ffebee; }
+
+        /* Buttons */
+        .btn { background-color: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1em; }
+        .btn:hover { background-color: #34495e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CS Class Video Tracker</h1>
+    <p class="subtitle">Watch the playlist below. Do not skip or switch tabs.</p>
+
+    <div id="cheat-alert">⚠️ TAB SWITCH DETECTED! Video Paused. Please stay on this tab to continue.</div>
+
+    <div class="video-wrapper">
+        <div id="player"></div>
+    </div>
+
+    <div class="stats-box">
+        <div class="stats-header">
+            <h3>Your Progress Report</h3>
+            <button class="btn" onclick="copyReport()">📋 Copy Report to Send</button>
+        </div>
+        <div id="report-list">
+            <p style="color: #666; text-align: center;"><i>Load the video to see your checklist...</i></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const PLAYLIST_ID = 'PL424dCM7s48ngY-ylr6rKDhZC-eojZyOT'; // Your Playlist
+    const STORAGE_KEY = 'student_tracker_v1';
+
+    // --- STATE MANAGEMENT ---
+    var player;
+    var timer;
+    var currentVideoIndex = -1;
+    var currentDuration = 0;
+    
+    // Data structure: { videoIndex: [1, 0, 1, 1...] } (1 = watched second)
+    var progressData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+    // --- YOUTUBE API SETUP ---
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+            height: '100%',
+            width: '100%',
+            playerVars: {
+                listType: 'playlist',
+                list: PLAYLIST_ID,
+                modestbranding: 1,
+                rel: 0
+            },
+            events: {
+                'onStateChange': onPlayerStateChange,
+                'onReady': onPlayerReady
+            }
+        });
+    }
+
+    function onPlayerReady(event) {
+        // Wait for user interaction
+    }
+
+    function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING) {
+            checkVideoChange();
+            startTracking();
+        } else {
+            stopTracking();
+        }
+    }
+
+    // --- TRACKING CORE ---
+    function checkVideoChange() {
+        var newIndex = player.getPlaylistIndex();
+        
+        // Setup new video context if changed
+        if (newIndex !== currentVideoIndex || currentDuration === 0) {
+            currentVideoIndex = newIndex;
+            currentDuration = Math.floor(player.getDuration());
+            
+            // Initialize storage bucket if not exists
+            if (!progressData[currentVideoIndex]) {
+                progressData[currentVideoIndex] = new Array(currentDuration).fill(0);
+            }
+            // If duration changed (playlist load delay), resize array preserving data
+            else if (progressData[currentVideoIndex].length < currentDuration) {
+                let old = progressData[currentVideoIndex];
+                progressData[currentVideoIndex] = new Array(currentDuration).fill(0);
+                for(let i=0; i<old.length; i++) progressData[currentVideoIndex][i] = old[i];
+            }
+            
+            renderReport();
+        }
+    }
+
+    function startTracking() {
+        stopTracking();
+        timer = setInterval(function() {
+            var time = Math.floor(player.getCurrentTime());
+            
+            if (progressData[currentVideoIndex] && time < progressData[currentVideoIndex].length) {
+                // Mark second as watched (1)
+                progressData[currentVideoIndex][time] = 1;
+                
+                // Save to LocalStorage (Persist on Refresh)
+                if (time % 5 === 0) { // Save every 5s to avoid spam
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData));
+                    updateLiveUI();
+                }
+            }
+        }, 1000);
+    }
+
+    function stopTracking() {
+        clearInterval(timer);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData)); // Force save on pause
+    }
+
+    // --- UI & REPORTING ---
+    function getPercent(index) {
+        if (!progressData[index]) return 0;
+        let watched = progressData[index].filter(x => x === 1).length;
+        let total = progressData[index].length;
+        return total === 0 ? 0 : ((watched / total) * 100).toFixed(1);
+    }
+
+    function renderReport() {
+        const list = document.getElementById('report-list');
+        list.innerHTML = '';
+        
+        // We iterate based on data we have. 
+        // Note: YouTube API doesn't give total playlist count easily until we play them,
+        // so we list what we have tracked so far.
+        Object.keys(progressData).sort((a,b) => a-b).forEach(idx => {
+            let pct = getPercent(idx);
+            let isGood = pct > 90;
+            let row = document.createElement('div');
+            
+            row.className = 'video-row ' + (idx == currentVideoIndex ? 'active' : '');
+            row.id = 'row-' + idx;
+            row.innerHTML = `
+                <span>Video #${parseInt(idx) + 1}</span>
+                <span class="status-badge ${isGood ? 'status-good' : 'status-bad'}">${pct}%</span>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    function updateLiveUI() {
+        let row = document.getElementById('row-' + currentVideoIndex);
+        if (row) {
+            let pct = getPercent(currentVideoIndex);
+            let badge = row.querySelector('.status-badge');
+            badge.innerText = pct + '%';
+            badge.className = `status-badge ${pct > 90 ? 'status-good' : 'status-bad'}`;
+        }
+    }
+
+    // --- ANTI-CHEAT ---
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) {
+            if (player && player.pauseVideo) player.pauseVideo();
+            document.getElementById('cheat-alert').style.display = 'block';
+        } else {
+            document.getElementById('cheat-alert').style.display = 'none';
+        }
+    });
+
+    // --- EXPORT FUNCTION ---
+    window.copyReport = function() {
+        let text = "My Video Progress Report:\n-------------------------\n";
+        Object.keys(progressData).sort((a,b) => a-b).forEach(idx => {
+            text += `Video ${parseInt(idx)+1}: ${getPercent(idx)}%\n`;
+        });
+        text += "\nSent from Class Tracker.";
+        
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Report copied! Paste it in your email or chat to submit.");
+        });
+    }
+</script>
+
+</body>
+</html>
