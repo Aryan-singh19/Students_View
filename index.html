@@ -147,41 +147,86 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+    import { getAuth, signInAnonymously, signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
     import { getFirestore, doc, setDoc, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw", authDomain: "students-view.firebaseapp.com", projectId: "students-view", storageBucket: "students-view.firebasestorage.app", messagingSenderId: "969909965594", appId: "1:969909965594:web:931863f8899c7f28b1d2a3" };
-    const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const provider = new GoogleAuthProvider();
+    const firebaseConfig = { 
+        apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw", 
+        authDomain: "students-view.firebaseapp.com", 
+        projectId: "students-view", 
+        storageBucket: "students-view.firebasestorage.app", 
+        messagingSenderId: "969909965594", 
+        appId: "1:969909965594:web:931863f8899c7f28b1d2a3" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
     let currentUser = null;
 
-    signInAnonymously(auth);
-    window.loginWithGoogle = () => signInWithPopup(auth, provider);
-    window.identifyGuest = () => { const n = document.getElementById('username-inp').value.trim(); if(n.length > 2) { localStorage.setItem('toc_username', n); location.reload(); } };
+    // HYBRID LOGIN: Fixes "missing initial state" and mobile blocks
+    window.loginWithGoogle = async () => {
+        try { 
+            await signInWithPopup(auth, provider); 
+        } catch (e) { 
+            console.log("Popup blocked or session error, trying redirect...");
+            await signInWithRedirect(auth, provider); 
+        }
+    };
 
+    window.identifyGuest = () => { 
+        const n = document.getElementById('username-inp').value.trim(); 
+        if(n.length > 2) { 
+            localStorage.setItem('toc_username', n); 
+            location.reload(); 
+        } 
+    };
+
+    // WAIT FOR AUTH BEFORE PUMPING DATA
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
             const name = user.displayName || localStorage.getItem('toc_username');
-            if(user.isAnonymous && !name) { document.getElementById('login-modal').style.display = 'flex'; }
-            else { 
+            
+            // Only show modal if user is a Guest AND has no saved name
+            if(user.isAnonymous && !name) { 
+                document.getElementById('login-modal').style.display = 'flex'; 
+            } else { 
                 document.getElementById('login-modal').style.display = 'none';
                 document.getElementById('auth-label').innerText = name;
-                await syncCloud(); initChat(); initReactions();
+                await syncCloud(); 
+                initChat(); 
+                initReactions();
             }
+        } else {
+            // No user found, start a session to capture data
+            signInAnonymously(auth);
         }
     });
 
     async function syncCloud() {
         if(!currentUser) return;
-        const p = localStorage.getItem('toc_progress_v6'); const n = localStorage.getItem('toc_notes_v6');
+        const p = localStorage.getItem('toc_progress_v6'); 
+        const n = localStorage.getItem('toc_notes_v6');
+        const finalName = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
+
         await setDoc(doc(db, "user_progress", currentUser.uid), {
-            name: currentUser.displayName || localStorage.getItem('toc_username'),
-            email: currentUser.email || "N/A", isGuest: currentUser.isAnonymous,
-            progress: p ? JSON.parse(p) : {}, notes: n ? JSON.parse(n) : {}, lastUpdated: serverTimestamp()
+            name: finalName,
+            email: currentUser.email || "N/A", 
+            isGuest: currentUser.isAnonymous,
+            progress: p ? JSON.parse(p) : {}, 
+            notes: n ? JSON.parse(n) : {}, 
+            lastUpdated: serverTimestamp()
         }, { merge: true });
     }
 
-    window.pushStep = (p) => { if(currentUser) setDoc(doc(db, "user_progress", currentUser.uid), { progress: p, lastUpdated: serverTimestamp() }, { merge: true }); };
+    window.pushStep = (p) => { 
+        if(currentUser) setDoc(doc(db, "user_progress", currentUser.uid), { 
+            progress: p, 
+            lastUpdated: serverTimestamp() 
+        }, { merge: true }); 
+    };
     
     function initChat() {
         onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
@@ -198,15 +243,32 @@
 
     window.sendMsg = () => {
         const inp = document.getElementById('chat-input'); if(!inp.value.trim() || !currentUser) return;
-        addDoc(collection(db, "chat_messages"), { text: inp.value, user: currentUser.displayName || localStorage.getItem('toc_username'), uid: currentUser.uid, createdAt: serverTimestamp() });
+        const sender = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
+        addDoc(collection(db, "chat_messages"), { 
+            text: inp.value, 
+            user: sender, 
+            uid: currentUser.uid, 
+            createdAt: serverTimestamp() 
+        });
         inp.value = '';
     };
 
-    function initReactions() { onSnapshot(query(collection(db, "reactions"), orderBy("createdAt", "desc"), limit(1)), (s) => { s.docChanges().forEach(c => { if(c.type === "added") showHeart(); })}); }
-    window.sendReaction = () => { showHeart(); addDoc(collection(db, "reactions"), { type: "heart", createdAt: serverTimestamp() }); };
-    function escape(s) { return s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ""; }
-</script>
+    function initReactions() { 
+        onSnapshot(query(collection(db, "reactions"), orderBy("createdAt", "desc"), limit(1)), (s) => { 
+            s.docChanges().forEach(c => { if(c.type === "added") showHeart(); });
+        }); 
+    }
 
+    window.sendReaction = () => { 
+        showHeart(); 
+        addDoc(collection(db, "reactions"), { type: "heart", createdAt: serverTimestamp() }); 
+    };
+
+    function escape(s) { 
+        return s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ""; 
+    }
+        </script>
+    
 <script>
     const VIDEOS = ["01 Intro to Grammar & Recursively Enumerable", "02 Language Generated by Grammar (Ex 1)", "03 Language Generated by Grammar (Ex 2)", "04 Language Generated by Grammar (Ex 3)", "05 RLG to LLG 1", "06 LLG to RLG", "07 Elimination of Useless Symbols (TOC)", "08 Context Free Grammar", "09 Push Down Automata", "10 Practice Questions PDA and NPDA", "11 Conversion of CFG to PDA", "12 Turing Machine", "13 Turing Machine: Practice Questions", "14 Intro to Recursively Enumerable Sets", "15 Undecidability & Comp. Classes", "16 Universal Turing Machine", "17 Computational Classes", "18 Sequence Detector (Moore & Mealy)", "19 Master PDA to CFG Conversion"];
     var player, timer, currentIndex = -1, progress = JSON.parse(localStorage.getItem('toc_progress_v6')) || {}, notes = JSON.parse(localStorage.getItem('toc_notes_v6')) || {};
