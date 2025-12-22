@@ -7,684 +7,289 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f0f0f;
-            --bg-panel: #1e1e1e;
-            --bg-hover: #303030;
-            --text-main: #ffffff;
-            --text-mute: #aaaaaa;
-            --brand: #ff0000;
-            --success: #2ba640;
-            --border: #333;
-            --chat-bg: #121212;
+            --bg-dark: #0f0f0f; --bg-panel: #1e1e1e; --bg-hover: #303030;
+            --text-main: #ffffff; --text-mute: #aaaaaa; --brand: #ff0000;
+            --success: #2ba640; --border: #333; --chat-bg: #121212;
         }
-
         * { box-sizing: border-box; }
         body { font-family: 'Roboto', sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; transition: background 0.3s; }
         
-        /* FOCUS MODE OVERRIDES */
         body.focus-mode header, body.focus-mode .sidebar { opacity: 0.05; pointer-events: none; transition: opacity 0.5s; }
         body.focus-mode .player-wrapper { transform: scale(1.02); z-index: 1000; box-shadow: 0 0 100px black; }
 
-        /* HEADER */
-        header {
-            background: rgba(15, 15, 15, 0.98);
-            padding: 0 24px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-            z-index: 50;
-        }
-        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; letter-spacing: -0.5px; }
+        header { background: rgba(15, 15, 15, 0.98); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; z-index: 50; }
+        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; }
         .logo svg { height: 24px; fill: var(--brand); }
         
         .controls-top { display: flex; gap: 8px; align-items: center; }
-        .btn-sm { background: #222; border: 1px solid #333; color: #eee; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: background 0.2s; }
-        .btn-sm:hover { background: #333; }
+        .btn-sm { background: #222; border: 1px solid #333; color: #eee; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
         .live-badge { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--success); font-weight: bold; background: rgba(43, 166, 64, 0.1); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(43, 166, 64, 0.3); }
         .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
 
-        /* LAYOUT */
         .grid-container { display: flex; flex: 1; overflow: hidden; }
-        
-        /* LEFT COLUMN (Player & Tools) */
-        .main-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            padding: 24px;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
+        .main-col { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
 
-        .player-wrapper {
-            position: relative;
-            padding-bottom: 56.25%;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            transition: transform 0.3s;
-        }
+        .player-wrapper { position: relative; padding-bottom: 56.25%; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .player-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-        /* OVERLAYS */
-        .overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: none;
-            flex-direction: column; align-items: center; justify-content: center; z-index: 10;
-        }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
         .btn-main { background: #3ea6ff; color: #000; border: none; padding: 10px 24px; font-weight: 700; border-radius: 2px; cursor: pointer; text-transform: uppercase; }
 
-        /* INFO AREA */
         .info-area { margin-top: 16px; flex-shrink: 0; }
-        .video-title { font-size: 1.4rem; font-weight: 600; margin: 0 0 8px 0; }
-        .video-meta { display: flex; justify-content: space-between; align-items: center; color: var(--text-mute); font-size: 0.9rem; }
-        
-        /* TABS (Below Video) */
         .tabs { display: flex; gap: 20px; margin-top: 20px; border-bottom: 1px solid var(--border); }
         .tab { background: none; border: none; color: var(--text-mute); padding: 10px 0; cursor: pointer; font-size: 1rem; position: relative; }
-        .tab.active { color: var(--text-main); font-weight: 500; }
-        .tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: var(--text-main); border-radius: 3px 3px 0 0; }
+        .tab.active { color: var(--text-main); font-weight: 500; border-bottom: 3px solid white; }
 
-        /* PANELS */
         .panel { display: none; margin-top: 20px; background: var(--bg-panel); padding: 20px; border-radius: 8px; animation: slideUp 0.3s ease; }
         .panel.show { display: block; }
 
-        /* NOTES */
-        .note-input { width: 100%; background: #111; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+        .note-input { width: 100%; background: #111; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; }
         .notes-list { max-height: 300px; overflow-y: auto; }
         .note-item { background: #222; padding: 10px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; border-left: 3px solid var(--brand); }
         .note-time { color: var(--brand); font-weight: bold; cursor: pointer; margin-right: 10px; }
-        .note-time:hover { text-decoration: underline; }
 
-        /* RIGHT COLUMN (Sidebar) */
-        .sidebar {
-            width: 400px;
-            background: var(--bg-panel);
-            border-left: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            z-index: 40;
-        }
-
+        .sidebar { width: 400px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
         .side-tabs { display: flex; border-bottom: 1px solid var(--border); background: #151515; }
-        .side-tab { flex: 1; background: transparent; border: none; color: #888; padding: 15px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-        .side-tab:hover { background: #222; }
-        .side-tab.active { color: white; border-bottom: 3px solid white; background: var(--bg-panel); }
+        .side-tab { flex: 1; background: transparent; border: none; color: #888; padding: 15px; cursor: pointer; font-weight: 600; }
+        .side-tab.active { color: white; border-bottom: 3px solid white; }
 
-        /* CHAT */
-        .chat-view { flex: 1; display: none; flex-direction: column; background: var(--chat-bg); position: relative; }
-        .chat-view.active { display: flex; }
+        .chat-view, .playlist-view { flex: 1; display: none; flex-direction: column; overflow-y: auto; }
+        .chat-view.active, .playlist-view.active { display: flex; }
+        
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
         .msg { font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
         .msg b { color: #aaa; font-size: 0.8rem; margin-right: 5px; }
         .msg.me b { color: #3ea6ff; }
-        .msg span { color: #ddd; }
         
-        .chat-input-area { padding: 15px; background: var(--bg-panel); display: flex; gap: 10px; border-top: 1px solid var(--border); }
-        .chat-inp { flex: 1; background: #000; border: 1px solid #333; color: white; padding: 10px; border-radius: 20px; outline: none; }
-        .chat-btn { background: #333; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-        /* PLAYLIST */
-        .playlist-view { flex: 1; overflow-y: auto; display: none; }
-        .playlist-view.active { display: block; }
         .playlist-item { display: flex; gap: 10px; padding: 10px; cursor: pointer; border-bottom: 1px solid transparent; }
-        .playlist-item:hover { background: var(--bg-hover); }
         .playlist-item.active { background: #333; border-left: 4px solid var(--brand); }
         .thumb { width: 100px; height: 56px; background: #000; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
         .progress-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--brand); width: 0%; }
 
-        /* LIVE REACTIONS */
         .reaction-container { position: absolute; bottom: 80px; right: 20px; pointer-events: none; width: 50px; height: 200px; overflow: hidden; }
         .floating-heart { position: absolute; bottom: 0; right: 10px; font-size: 24px; animation: floatUp 2s ease-out forwards; opacity: 0; }
-        .react-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; transition: transform 0.1s; padding: 5px; }
-        .react-btn:active { transform: scale(1.3); }
 
-        /* MODAL */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; }
-        .modal-box { background: var(--bg-panel); padding: 30px; border-radius: 12px; width: 350px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px black; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: var(--bg-panel); padding: 30px; border-radius: 12px; width: 380px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px black; }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-150px) scale(1.5); opacity: 0; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        @media(max-width: 900px) { .grid-container { flex-direction: column; overflow-y: auto; } .sidebar { width: 100%; height: 500px; } }
+        @media(max-width: 900px) { .grid-container { flex-direction: column; } .sidebar { width: 100%; height: 500px; } }
     </style>
 </head>
 <body>
 
-<!-- USERNAME MODAL -->
 <div class="modal" id="login-modal">
     <div class="modal-box">
-        <h2 style="color:white; margin-top:0;">Join Class</h2>
-        <p style="color:#aaa; font-size:0.9rem; margin-bottom:20px;">Enter your name to sync with the live chat.</p>
-        <input type="text" id="username-inp" class="note-input" placeholder="Your Name" maxlength="15">
-        <button class="btn-main" style="width:100%;" onclick="setUsername()">Start Learning</button>
+        <h2 style="color:white; margin-top:0;">Student Access</h2>
+        <p style="color:#aaa; font-size:0.9rem; margin-bottom:20px;">Identify yourself to track and sync progress.</p>
+        <button class="btn-main" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:15px;" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18"> Login with Google
+        </button>
+        <div style="color:#444; font-size:0.8rem; margin:10px 0;">OR ENTER NAME</div>
+        <input type="text" id="username-inp" class="note-input" placeholder="Full Name" maxlength="20">
+        <button class="btn-sm" style="width:100%; margin-top:10px; background:var(--brand); border:none; color:white;" onclick="identifyGuest()">Continue to Class</button>
     </div>
 </div>
 
 <header>
-    <div class="logo">
-        <svg viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
-        CourseTube 6.0
-    </div>
-    
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg> CourseTube 6.0</div>
     <div class="controls-top">
+        <div id="auth-label" style="font-size:0.75rem; color:#888; margin-right:10px;">Connecting...</div>
         <div class="live-badge"><span class="dot"></span> LIVE</div>
         <button class="btn-sm" onclick="toggleFocus()">🌙 Focus</button>
         <select class="btn-sm" onchange="setSpeed(this.value)" style="border:none;">
-            <option value="1">1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2x</option>
+            <option value="1">1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option>
         </select>
     </div>
 </header>
 
 <div class="grid-container">
-    <!-- LEFT: CONTENT -->
     <div class="main-col">
         <div class="player-wrapper">
             <div id="player"></div>
             <div class="overlay" id="cheat-overlay">
                 <h2 style="color:var(--brand)">⚠️ Session Paused</h2>
-                <p style="color:#ddd; margin-bottom: 20px;">Please keep this tab active to track progress.</p>
                 <button class="btn-main" onclick="resume()">Resume</button>
             </div>
         </div>
-
         <div class="info-area">
             <h1 class="video-title" id="main-title">Loading...</h1>
-            <div class="video-meta">
-                <span id="video-counter">Video 1/19</span>
-                <span id="progress-txt" style="color:var(--brand); font-weight:bold;">0% Watched</span>
-            </div>
+            <div class="video-meta"><span id="video-counter">Video 1/19</span><span id="progress-txt" style="color:var(--brand); font-weight:bold;">0% Watched</span></div>
         </div>
-
         <div class="tabs">
             <button class="tab active" onclick="setTab('notes')">📝 My Notes</button>
             <button class="tab" onclick="setTab('report')">📊 Progress Report</button>
         </div>
-
-        <!-- NOTES TAB -->
         <div id="tab-notes" class="panel show">
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="note-text" class="note-input" placeholder="Type a private note..." style="margin-bottom:0;">
-                <button class="btn-sm" style="background:var(--brand); border:none;" onclick="addNote()">Add</button>
-            </div>
-            <p style="font-size:0.8rem; color:#666; margin-top:5px;">Notes are saved to your device automatically.</p>
+            <div style="display:flex; gap:10px;"><input type="text" id="note-text" class="note-input" placeholder="Type a note..."><button class="btn-sm" onclick="addNote()">Add</button></div>
             <div id="notes-list" class="notes-list" style="margin-top:15px;"></div>
         </div>
-
-        <!-- REPORT TAB -->
         <div id="tab-report" class="panel">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; text-align:center;">
-                    <div style="font-size:2rem; font-weight:bold; color:var(--brand);" id="total-pct">0%</div>
-                    <div style="font-size:0.8rem; color:#aaa;">COMPLETION</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; text-align:center;">
-                    <div style="font-size:2rem; font-weight:bold; color:white;" id="watched-count">0</div>
-                    <div style="font-size:0.8rem; color:#aaa;">VIDEOS DONE</div>
-                </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; text-align:center;"><div style="font-size:2rem; font-weight:bold; color:var(--brand);" id="total-pct">0%</div><div>COMPLETION</div></div>
+                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; text-align:center;"><div style="font-size:2rem; font-weight:bold;" id="watched-count">0</div><div>VIDEOS DONE</div></div>
             </div>
-            <button class="btn-main" style="width:100%; background:#222; border:1px solid #444; color:white;" onclick="downloadReport()">Download Verified Report ⬇</button>
+            <button class="btn-main" style="width:100%; margin-top:15px;" onclick="downloadReport()">Download Verified Report ⬇</button>
         </div>
     </div>
-
-    <!-- RIGHT: SIDEBAR -->
     <div class="sidebar">
-        <div class="side-tabs">
-            <button class="side-tab active" onclick="setSideTab('chat')">Live Chat</button>
-            <button class="side-tab" onclick="setSideTab('playlist')">Playlist</button>
-        </div>
-
-        <!-- CHAT -->
+        <div class="side-tabs"><button class="side-tab active" onclick="setSideTab('chat')">Live Chat</button><button class="side-tab" onclick="setSideTab('playlist')">Playlist</button></div>
         <div id="view-chat" class="chat-view active">
-            <div class="chat-messages" id="chat-msgs">
-                <div style="text-align:center; color:#444; margin-top:20px;">Connecting to classroom...</div>
-            </div>
-            
-            <!-- Reaction Float Area -->
+            <div class="chat-messages" id="chat-msgs"></div>
             <div class="reaction-container" id="reaction-area"></div>
-
-            <div class="chat-input-area">
-                <button class="react-btn" onclick="sendReaction()">❤️</button>
-                <input type="text" id="chat-input" class="chat-inp" placeholder="Message class..." onkeypress="handleKey(event)">
-                <button class="chat-btn" onclick="sendMsg()">➤</button>
-            </div>
+            <div class="chat-input-area"><button class="react-btn" onclick="sendReaction()">❤️</button><input type="text" id="chat-input" class="chat-inp" placeholder="Message..." onkeypress="handleKey(event)"><button class="chat-btn" onclick="sendMsg()">➤</button></div>
         </div>
-
-        <!-- PLAYLIST -->
-        <div id="view-playlist" class="playlist-view">
-            <div id="playlist-list"></div>
-        </div>
+        <div id="view-playlist" class="playlist-view"><div id="playlist-list"></div></div>
     </div>
 </div>
 
-<!-- FIREBASE MODULES -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+    import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-    // --- YOUR CONFIG ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw",
-      authDomain: "students-view.firebaseapp.com",
-      projectId: "students-view",
-      storageBucket: "students-view.firebasestorage.app",
-      messagingSenderId: "969909965594",
-      appId: "1:969909965594:web:931863f8899c7f28b1d2a3"
-    };
-
-    // INIT FIREBASE
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
+    const firebaseConfig = { apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw", authDomain: "students-view.firebaseapp.com", projectId: "students-view", storageBucket: "students-view.firebasestorage.app", messagingSenderId: "969909965594", appId: "1:969909965594:web:931863f8899c7f28b1d2a3" };
+    const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const provider = new GoogleAuthProvider();
     let currentUser = null;
-    let username = localStorage.getItem('toc_username') || "Student";
 
-    // AUTH
-    signInAnonymously(auth).catch((error) => console.error("Auth Error", error));
+    signInAnonymously(auth);
+    window.loginWithGoogle = () => signInWithPopup(auth, provider);
+    window.identifyGuest = () => { const n = document.getElementById('username-inp').value.trim(); if(n.length > 2) { localStorage.setItem('toc_username', n); location.reload(); } };
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
-            initChat();
-            initReactions();
+            const name = user.displayName || localStorage.getItem('toc_username');
+            if(user.isAnonymous && !name) { document.getElementById('login-modal').style.display = 'flex'; }
+            else { 
+                document.getElementById('login-modal').style.display = 'none';
+                document.getElementById('auth-label').innerText = name;
+                await syncCloud(); initChat(); initReactions();
+            }
         }
     });
 
-    // CHAT LOGIC
-    function initChat() {
-        const q = query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50));
-        
-        onSnapshot(q, (snapshot) => {
-            const container = document.getElementById('chat-msgs');
-            // We use a simple clear/reverse render for simplicity in this file
-            const msgs = [];
-            snapshot.forEach((doc) => msgs.push(doc.data()));
-            
-            if(msgs.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:#444; margin-top:20px;">No messages yet. Say hi!</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            msgs.reverse().forEach(msg => {
-                const div = document.createElement('div');
-                div.className = `msg ${msg.uid === currentUser.uid ? 'me' : ''}`;
-                div.innerHTML = `<b>${escape(msg.user)}</b> <span>${escape(msg.text)}</span>`;
-                container.appendChild(div);
-            });
-            container.scrollTop = container.scrollHeight;
-        });
-    }
-
-    // EXPORT FUNCTIONS TO WINDOW
-    window.sendMsg = async () => {
-        const inp = document.getElementById('chat-input');
-        const text = inp.value.trim();
-        if(!text || !currentUser) return;
-        
-        try {
-            await addDoc(collection(db, "chat_messages"), {
-                text: text,
-                user: username,
-                uid: currentUser.uid,
-                createdAt: serverTimestamp()
-            });
-            inp.value = '';
-        } catch(e) { console.error("Send Error", e); }
-    }
-
-    // REACTIONS (Simulated via Chat for simplicity, usually needs separate collection)
-    // We will just trigger local animation for now to save DB writes on free plan,
-    // OR we can write to a 'reactions' collection. Let's do local broadcast via a "System" message hiddenly?
-    // Actually, let's just create a 'reactions' collection.
-    
-    function initReactions() {
-        const q = query(collection(db, "reactions"), orderBy("createdAt", "desc"), limit(1));
-        onSnapshot(q, (snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                if(change.type === "added") {
-                    // Trigger Heart Animation
-                    showFloatingHeart();
-                }
-            });
-        });
-    }
-
-    window.sendReaction = async () => {
-        // Optimistic UI
-        showFloatingHeart();
+    async function syncCloud() {
         if(!currentUser) return;
-        await addDoc(collection(db, "reactions"), {
-            type: "heart",
-            uid: currentUser.uid,
-            createdAt: serverTimestamp()
+        const p = localStorage.getItem('toc_progress_v6'); const n = localStorage.getItem('toc_notes_v6');
+        await setDoc(doc(db, "user_progress", currentUser.uid), {
+            name: currentUser.displayName || localStorage.getItem('toc_username'),
+            email: currentUser.email || "N/A", isGuest: currentUser.isAnonymous,
+            progress: p ? JSON.parse(p) : {}, notes: n ? JSON.parse(n) : {}, lastUpdated: serverTimestamp()
+        }, { merge: true });
+    }
+
+    window.pushStep = (p) => { if(currentUser) setDoc(doc(db, "user_progress", currentUser.uid), { progress: p, lastUpdated: serverTimestamp() }, { merge: true }); };
+    
+    function initChat() {
+        onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
+            const cont = document.getElementById('chat-msgs'); cont.innerHTML = '';
+            snap.docs.reverse().forEach(d => {
+                const m = d.data(); const div = document.createElement('div');
+                div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
+                div.innerHTML = `<b>${escape(m.user)}</b>: <span>${escape(m.text)}</span>`;
+                cont.appendChild(div);
+            });
+            cont.scrollTop = cont.scrollHeight;
         });
     }
 
-    function escape(str) {
-        if(!str) return "";
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
+    window.sendMsg = () => {
+        const inp = document.getElementById('chat-input'); if(!inp.value.trim() || !currentUser) return;
+        addDoc(collection(db, "chat_messages"), { text: inp.value, user: currentUser.displayName || localStorage.getItem('toc_username'), uid: currentUser.uid, createdAt: serverTimestamp() });
+        inp.value = '';
+    };
 
-    // Handle Enter Key
-    window.handleKey = (e) => { if(e.key === 'Enter') window.sendMsg(); }
+    function initReactions() { onSnapshot(query(collection(db, "reactions"), orderBy("createdAt", "desc"), limit(1)), (s) => { s.docChanges().forEach(c => { if(c.type === "added") showHeart(); })}); }
+    window.sendReaction = () => { showHeart(); addDoc(collection(db, "reactions"), { type: "heart", createdAt: serverTimestamp() }); };
+    function escape(s) { return s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ""; }
 </script>
 
-<!-- VIDEO & TRACKING LOGIC -->
 <script>
-    // CONFIG
-    const PLAYLIST_ID = 'PL424dCM7s48ngY-ylr6rKDhZC-eojZyOT';
-    const STORAGE_KEY = 'toc_progress_v6';
-    const NOTE_KEY = 'toc_notes_v6';
-    
-    const VIDEOS = [
-        "01 Intro to Grammar & Recursively Enumerable", "02 Language Generated by Grammar (Ex 1)",
-        "03 Language Generated by Grammar (Ex 2)", "04 Language Generated by Grammar (Ex 3)",
-        "05 RLG to LLG 1", "06 LLG to RLG", "07 Elimination of Useless Symbols (TOC)",
-        "08 Context Free Grammar", "09 Push Down Automata", "10 Practice Questions PDA and NPDA",
-        "11 Conversion of CFG to PDA", "12 Turing Machine", "13 Turing Machine: Practice Questions",
-        "14 Intro to Recursively Enumerable Sets", "15 Undecidability & Comp. Classes",
-        "16 Universal Turing Machine", "17 Computational Classes", "18 Sequence Detector (Moore & Mealy)",
-        "19 Master PDA to CFG Conversion"
-    ];
+    const VIDEOS = ["01 Intro to Grammar & Recursively Enumerable", "02 Language Generated by Grammar (Ex 1)", "03 Language Generated by Grammar (Ex 2)", "04 Language Generated by Grammar (Ex 3)", "05 RLG to LLG 1", "06 LLG to RLG", "07 Elimination of Useless Symbols (TOC)", "08 Context Free Grammar", "09 Push Down Automata", "10 Practice Questions PDA and NPDA", "11 Conversion of CFG to PDA", "12 Turing Machine", "13 Turing Machine: Practice Questions", "14 Intro to Recursively Enumerable Sets", "15 Undecidability & Comp. Classes", "16 Universal Turing Machine", "17 Computational Classes", "18 Sequence Detector (Moore & Mealy)", "19 Master PDA to CFG Conversion"];
+    var player, timer, currentIndex = -1, progress = JSON.parse(localStorage.getItem('toc_progress_v6')) || {}, notes = JSON.parse(localStorage.getItem('toc_notes_v6')) || {};
 
-    // STATE
-    var player, timer;
-    var currentIndex = -1;
-    var currentDuration = 0;
-    var progress = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    var notes = JSON.parse(localStorage.getItem(NOTE_KEY)) || {};
-
-    
-    // YOUTUBE INIT
-    var tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    var firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; document.getElementsByTagName('script')[0].parentNode.insertBefore(tag, null);
 
     function onYouTubeIframeAPIReady() {
-        player = new YT.Player('player', {
-            height: '100%', width: '100%',
-            playerVars: { listType: 'playlist', list: PLAYLIST_ID, rel: 0, modestbranding: 1 },
-            events: { 'onReady': initApp, 'onStateChange': onStateChange }
+        player = new YT.Player('player', { height: '100%', width: '100%', playerVars: { listType: 'playlist', list: 'PL424dCM7s48ngY-ylr6rKDhZC-eojZyOT' },
+            events: { 'onReady': () => { renderPlaylist(); updateReport(); }, 'onStateChange': (e) => { if(e.data == 1) { document.getElementById('cheat-overlay').style.display='none'; startTracking(); } else stopTracking(); } }
         });
-    }
-
-    function initApp() {
-        renderPlaylist();
-        updateReport();
-        
-        // Username Check
-        if(localStorage.getItem('toc_username')) {
-            document.getElementById('login-modal').style.display = 'none';
-        }
-    }
-
-    function onStateChange(event) {
-        if (event.data == YT.PlayerState.PLAYING) {
-            document.getElementById('cheat-overlay').style.display = 'none';
-            detectVideo();
-            startTracking();
-        } else if (event.data == YT.PlayerState.CUED) {
-            renderPlaylist();
-        } else {
-            stopTracking();
-        }
-    }
-
-    // TRACKING CORE
-    function detectVideo() {
-        let idx = player.getPlaylistIndex();
-        
-        // Highlight Sidebar
-        document.querySelectorAll('.playlist-item').forEach(e => e.classList.remove('active'));
-        let item = document.getElementById(`item-${idx}`);
-        if(item) { item.classList.add('active'); item.scrollIntoView({behavior:'smooth', block:'nearest'}); }
-
-        if (idx !== currentIndex || currentDuration === 0) {
-            currentIndex = idx;
-            currentDuration = Math.floor(player.getDuration());
-            
-            // Init Data
-            if (!progress[currentIndex]) progress[currentIndex] = new Array(currentDuration).fill(0);
-            else if (progress[currentIndex].length < currentDuration) {
-                // Resize preservation
-                let old = progress[currentIndex];
-                progress[currentIndex] = new Array(currentDuration).fill(0);
-                for(let i=0; i<old.length; i++) progress[currentIndex][i] = old[i];
-            }
-            
-            updateInfoUI();
-            renderNotes();
-        }
     }
 
     function startTracking() {
-        clearInterval(timer);
-        timer = setInterval(() => {
-            let t = Math.floor(player.getCurrentTime());
-            if (progress[currentIndex] && t < progress[currentIndex].length) {
-                progress[currentIndex][t] = 1;
-                if (t % 5 === 0) {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-                    updateRealTimeUI();
-                }
-            }
+        clearInterval(timer); timer = setInterval(() => {
+            let idx = player.getPlaylistIndex(); let t = Math.floor(player.getCurrentTime());
+            if(idx !== currentIndex) { currentIndex = idx; if(!progress[idx]) progress[idx] = new Array(Math.floor(player.getDuration())).fill(0); updateUI(); }
+            progress[idx][t] = 1;
+            if(t % 5 === 0) { localStorage.setItem('toc_progress_v6', JSON.stringify(progress)); if(window.pushStep) window.pushStep(progress); updateUI(); }
         }, 1000);
     }
 
-    function stopTracking() {
-        clearInterval(timer);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-        updateReport();
-    }
+    function stopTracking() { clearInterval(timer); localStorage.setItem('toc_progress_v6', JSON.stringify(progress)); updateReport(); }
 
-    // UI RENDERERS
     function renderPlaylist() {
-        const list = document.getElementById('playlist-list');
-        list.innerHTML = '';
+        const list = document.getElementById('playlist-list'); list.innerHTML = '';
         VIDEOS.forEach((title, i) => {
-            let el = document.createElement('div');
-            el.className = 'playlist-item';
-            el.id = `item-${i}`;
-            el.onclick = () => { player.playVideoAt(i); setSideTab('playlist'); };
-            
             let pct = getPct(i);
-            el.innerHTML = `
-                <div class="thumb">
-                    <span style="color:#555; font-size:1.5rem;">▶</span>
-                    <div class="progress-bar" style="width:${pct}%" id="bar-${i}"></div>
-                </div>
-                <div class="meta" style="display:flex; flex-direction:column; justify-content:center;">
-                    <div style="font-size:0.9rem; margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${i+1}. ${title}</div>
-                    <div style="font-size:0.8rem; color:#888;" id="sub-${i}">${pct}%</div>
-                </div>
-            `;
+            let el = document.createElement('div'); el.className = `playlist-item ${i===currentIndex?'active':''}`; el.id = `item-${i}`;
+            el.onclick = () => { player.playVideoAt(i); setSideTab('playlist'); };
+            el.innerHTML = `<div class="thumb">▶<div class="progress-bar" style="width:${pct}%" id="bar-${i}"></div></div>
+                            <div class="meta"><div style="font-size:0.85rem;">${i+1}. ${title}</div><div style="font-size:0.7rem; color:#888;">${pct}% watched</div></div>`;
             list.appendChild(el);
         });
     }
 
-    function updateInfoUI() {
-        let title = VIDEOS[currentIndex] || `Video ${currentIndex+1}`;
-        document.getElementById('main-title').innerText = title;
-        document.getElementById('video-counter').innerText = `Video ${currentIndex + 1}/${VIDEOS.length}`;
-        updateRealTimeUI();
-    }
-
-    function updateRealTimeUI() {
+    function updateUI() {
         let pct = getPct(currentIndex);
+        document.getElementById('main-title').innerText = VIDEOS[currentIndex];
         document.getElementById('progress-txt').innerText = `${pct}% Watched`;
-        
-        let bar = document.getElementById(`bar-${currentIndex}`);
-        let sub = document.getElementById(`sub-${currentIndex}`);
-        if(bar) bar.style.width = `${pct}%`;
-        if(sub) sub.innerText = `${pct}%`;
-    }
-
-    function updateReport() {
-        let sum = 0, count = 0;
-        VIDEOS.forEach((_, i) => {
-            let p = parseFloat(getPct(i));
-            sum += p;
-            if(p > 95) count++;
-        });
-        let avg = (sum / VIDEOS.length).toFixed(1);
-        document.getElementById('total-pct').innerText = avg + "%";
-        document.getElementById('watched-count').innerText = count + "/" + VIDEOS.length;
-    }
-
-    function getPct(i) {
-        if(!progress[i]) return 0;
-        let w = progress[i].filter(x => x===1).length;
-        let t = progress[i].length;
-        return t===0 ? 0 : ((w/t)*100).toFixed(0);
-    }
-
-    // NOTES SYSTEM
-    window.addNote = function() {
-        let inp = document.getElementById('note-text');
-        if(!inp.value.trim() || currentIndex === -1) return;
-        
-        if(!notes[currentIndex]) notes[currentIndex] = [];
-        notes[currentIndex].push({
-            time: Math.floor(player.getCurrentTime()),
-            text: inp.value.trim()
-        });
-        notes[currentIndex].sort((a,b) => a.time - b.time);
-        
-        localStorage.setItem(NOTE_KEY, JSON.stringify(notes));
-        inp.value = '';
+        if(document.getElementById(`bar-${currentIndex}`)) document.getElementById(`bar-${currentIndex}`).style.width = `${pct}%`;
         renderNotes();
     }
 
+    function getPct(i) { if(!progress[i] || progress[i].length === 0) return 0; return ((progress[i].filter(x=>x===1).length / progress[i].length)*100).toFixed(0); }
+
+    function updateReport() {
+        let sum = 0, count = 0; VIDEOS.forEach((_, i) => { let p = parseFloat(getPct(i)); sum += p; if(p > 95) count++; });
+        document.getElementById('total-pct').innerText = (sum / VIDEOS.length).toFixed(1) + "%";
+        document.getElementById('watched-count').innerText = count + "/" + VIDEOS.length;
+    }
+
+    window.addNote = () => {
+        let txt = document.getElementById('note-text').value; if(!txt) return;
+        if(!notes[currentIndex]) notes[currentIndex] = [];
+        notes[currentIndex].push({ t: Math.floor(player.getCurrentTime()), txt: txt });
+        localStorage.setItem('toc_notes_v6', JSON.stringify(notes)); document.getElementById('note-text').value = ''; renderNotes();
+    };
+
     function renderNotes() {
-        const list = document.getElementById('notes-list');
-        list.innerHTML = '';
-        let vidNotes = notes[currentIndex] || [];
-        
-        if(vidNotes.length === 0) { list.innerHTML = '<div style="color:#666; font-size:0.9rem;">No notes yet.</div>'; return; }
-
-        vidNotes.forEach((n, i) => {
-            let el = document.createElement('div');
-            el.className = 'note-item';
-            el.innerHTML = `
-                <div>
-                    <span class="note-time" onclick="player.seekTo(${n.time})">${formatTime(n.time)}</span>
-                    <span style="color:#ddd;">${n.text}</span>
-                </div>
-                <button onclick="deleteNote(${i})" style="background:none; border:none; color:#666; cursor:pointer;">✕</button>
-            `;
-            list.appendChild(el);
+        const list = document.getElementById('notes-list'); list.innerHTML = '';
+        (notes[currentIndex] || []).forEach(n => {
+            let div = document.createElement('div'); div.className = 'note-item';
+            div.innerHTML = `<span class="note-time" onclick="player.seekTo(${n.t})">${Math.floor(n.t/60)}:${(n.t%60).toString().padStart(2,'0')}</span> <span>${n.txt}</span>`;
+            list.appendChild(div);
         });
     }
 
-    window.deleteNote = function(i) {
-        if(confirm("Delete note?")) {
-            notes[currentIndex].splice(i, 1);
-            localStorage.setItem(NOTE_KEY, JSON.stringify(notes));
-            renderNotes();
-        }
-    }
-
-    // GLOBAL UTILS
-    window.setTab = function(t) {
-        document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(e => e.classList.remove('show'));
-        event.target.classList.add('active');
-        document.getElementById(`tab-${t}`).classList.add('show');
-        if(t === 'report') updateReport();
-    }
-
-    window.setSideTab = function(t) {
-        document.querySelectorAll('.side-tab').forEach(e => e.classList.remove('active'));
-        document.querySelectorAll('.chat-view, .playlist-view').forEach(e => e.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById(`view-${t}`).classList.add('active');
-    }
-
-    window.setUsername = function() {
-        let inp = document.getElementById('username-inp');
-        if(inp.value.trim()) {
-            localStorage.setItem('toc_username', inp.value.trim());
-            location.reload();
-        }
-    }
-
-    window.resume = function() {
-        document.getElementById('cheat-overlay').style.display = 'none';
-        player.playVideo();
-    }
+    window.setTab = (t) => { document.querySelectorAll('.tab, .panel').forEach(e => e.classList.remove('active','show')); event.target.classList.add('active'); document.getElementById(`tab-${t}`).classList.add('show'); };
+    window.setSideTab = (t) => { document.querySelectorAll('.side-tab, .chat-view, .playlist-view').forEach(e => e.classList.remove('active')); event.target.classList.add('active'); document.getElementById(`view-${t}`).classList.add('active'); };
+    window.resume = () => { document.getElementById('cheat-overlay').style.display='none'; player.playVideo(); };
+    window.toggleFocus = () => document.body.classList.toggle('focus-mode');
+    window.setSpeed = (s) => player.setPlaybackRate(parseFloat(s));
+    window.handleKey = (e) => { if(e.key === 'Enter') window.sendMsg(); };
+    function showHeart() { const h = document.createElement('div'); h.innerText='❤️'; h.className='floating-heart'; h.style.left=Math.random()*30+'px'; document.getElementById('reaction-area').appendChild(h); setTimeout(()=>h.remove(), 2000); }
+    document.addEventListener("visibilitychange", () => { if (document.hidden && player?.getPlayerState() === 1) { player.pauseVideo(); document.getElementById('cheat-overlay').style.display = 'flex'; } });
     
-    window.toggleFocus = function() { document.body.classList.toggle('focus-mode'); }
-    window.setSpeed = function(s) { player.setPlaybackRate(parseFloat(s)); }
-
-    window.downloadReport = function() {
-        let txt = "COURSE PROGRESS REPORT\n----------------------\n";
-        txt += `Date: ${new Date().toLocaleString()}\n`;
-        txt += `Student: ${localStorage.getItem('toc_username') || 'Unknown'}\n`;
-        txt += `Completion: ${document.getElementById('total-pct').innerText}\n\n`;
-        
-        let hashStr = "";
-        VIDEOS.forEach((title, i) => {
-            let p = getPct(i);
-            txt += `${p>95?'[x]':'[ ]'} ${p}% | ${title}\n`;
-            hashStr += p;
-        });
-
-        // Simple Hash
-        let h = 0;
-        for(let i=0; i<hashStr.length; i++) h = Math.imul(31, h) + hashStr.charCodeAt(i) | 0;
+    window.downloadReport = () => {
+        let txt = "COURSE PROGRESS REPORT\n"; let hashStr = "";
+        VIDEOS.forEach((v, i) => { let p = getPct(i); txt += `${p}% | ${v}\n`; hashStr += p; });
+        let h = 0; for(let i=0; i<hashStr.length; i++) h = Math.imul(31, h) + hashStr.charCodeAt(i) | 0;
         txt += `\n[VERIFICATION: ${Math.abs(h).toString(16).toUpperCase()}]`;
-
-        let b = new Blob([txt],{type:"text/plain"});
-        let a = document.createElement('a');
-        a.href = URL.createObjectURL(b);
-        a.download = "TOC_Verified_Report.txt";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-
-    function formatTime(s) {
-        let m = Math.floor(s/60);
-        let sec = s%60;
-        return `${m}:${sec<10?'0':''}${sec}`;
-    }
-
-    // ANIMATION
-    function showFloatingHeart() {
-        const area = document.getElementById('reaction-area');
-        const h = document.createElement('div');
-        h.innerText = '❤️';
-        h.className = 'floating-heart';
-        h.style.left = Math.random() * 30 + 'px';
-        area.appendChild(h);
-        setTimeout(() => h.remove(), 2000);
-    }
-
-    // ANTI-CHEAT
-    document.addEventListener("visibilitychange", function() {
-        if (document.hidden && player && player.getPlayerState() === 1) {
-            player.pauseVideo();
-            document.getElementById('cheat-overlay').style.display = 'flex';
-        }
-    });
-
+        let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt],{type:"text/plain"})); a.download = "TOC_Verified_Report.txt"; a.click();
+    };
 </script>
-
 </body>
 </html>
-          
