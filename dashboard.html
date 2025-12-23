@@ -49,6 +49,11 @@
         .badge-google { background: rgba(66, 133, 244, 0.1); color: #4285f4; }
         .badge-guest { background: rgba(255, 255, 255, 0.05); color: #888; }
 
+        /* RECOVERY MODAL STYLES */
+        #merge-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10000; align-items:center; justify-content:center; }
+        .m-box { background:var(--card); padding:30px; border-radius:20px; width:450px; border:1px solid var(--border); box-shadow: 0 20px 50px black; }
+        select { width:100%; padding:12px; background:#111; color:white; border:1px solid #333; margin:20px 0; border-radius:8px; font-size:1rem; }
+
         /* CHAT MANAGEMENT */
         .chat-mgmt { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 25px; }
         .chat-scroll { max-height: 400px; overflow-y: auto; background: #0b0e11; border-radius: 12px; padding: 10px; border: 1px solid #1c2126; }
@@ -63,6 +68,7 @@
         .btn-csv:hover { background: #00a946; box-shadow: 0 0 15px rgba(0,200,83,0.3); }
         .btn-clear { background: transparent; color: var(--danger); border-color: var(--danger); }
         .btn-clear:hover { background: var(--danger); color: white; }
+        .btn-fix { background: var(--success); color: white; padding: 6px 12px; font-size: 0.7rem; border: none; }
     </style>
 </head>
 <body>
@@ -73,6 +79,19 @@
         <p style="color:#888; margin-bottom:30px;">Authorized Access Only • TOC CourseTube</p>
         <button class="btn btn-csv" onclick="loginAdmin()" style="width:100%; justify-content:center; padding:15px;">Login with Google</button>
         <p id="auth-error" style="color:var(--danger); font-size:0.8rem; margin-top:15px;"></p>
+    </div>
+</div>
+
+<div id="merge-modal">
+    <div class="m-box">
+        <h2 style="margin:0; color:var(--success);">Data Recovery</h2>
+        <p id="guest-info" style="color:#aaa; font-size:0.9rem; margin:10px 0;"></p>
+        <label style="font-size:0.8rem; color:#888;">TARGET VERIFIED ACCOUNT:</label>
+        <select id="google-picker"></select>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-csv" style="flex:2; justify-content:center;" onclick="executeManualMerge()">Transfer Data</button>
+            <button class="btn" style="background:#444; color:white; flex:1; justify-content:center;" onclick="document.getElementById('merge-modal').style.display='none'">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -131,7 +150,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
     import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-    import { getFirestore, collection, doc, query, orderBy, onSnapshot, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, query, orderBy, onSnapshot, deleteDoc, getDocs, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw",
@@ -147,7 +166,8 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
     const TOTAL_VIDEOS = 19;
-    let studentsRawData = [];
+    let rawStudentDocs = [];
+    let pendingGuestId = null;
 
     window.loginAdmin = async () => {
         try { await signInWithPopup(auth, provider); } 
@@ -155,9 +175,7 @@
     };
 
     onAuthStateChanged(auth, (user) => {
-        // REPLACE WITH ACTUAL ADMIN EMAILS
         const admins = ["aryansingh19gh@gmail.com", "sir-email@gmail.com"];
-        
         if (user && admins.includes(user.email)) {
             document.getElementById('auth-overlay').style.display = 'none';
             initDashboard();
@@ -168,21 +186,33 @@
     });
 
     function initDashboard() {
-        // Watch User Data
         onSnapshot(collection(db, "user_progress"), (snapshot) => {
             const tbody = document.getElementById('data-table');
-            tbody.innerHTML = ''; studentsRawData = [];
+            const picker = document.getElementById('google-picker');
+            tbody.innerHTML = ''; 
+            picker.innerHTML = '<option value="">-- Choose Target Account --</option>';
+            rawStudentDocs = [];
+            
             let totalPctSum = 0; let count = 0; let topName = "---"; let topPct = -1;
 
-            snapshot.forEach((doc) => {
-                const data = doc.data();
+            snapshot.forEach((d) => {
+                const data = { ...d.data(), id: d.id };
+                rawStudentDocs.push(data);
+                if (!data.isGuest) {
+                    const opt = document.createElement('option');
+                    opt.value = data.id;
+                    opt.innerText = `${data.name} (${data.email})`;
+                    picker.appendChild(opt);
+                }
+            });
+
+            rawStudentDocs.forEach((data) => {
                 const progress = data.progress || {};
                 let videoSums = 0;
                 for(let i=0; i<TOTAL_VIDEOS; i++) {
                     if(progress[i]) {
                         const watched = progress[i].filter(x => x === 1).length;
-                        const total = progress[i].length;
-                        videoSums += total === 0 ? 0 : (watched / total) * 100;
+                        videoSums += (watched / progress[i].length) * 100;
                     }
                 }
                 const avgPct = parseFloat((videoSums / TOTAL_VIDEOS).toFixed(1));
@@ -190,7 +220,6 @@
                 if(avgPct > topPct) { topPct = avgPct; topName = data.name || "Anonymous"; }
                 
                 const timeStr = data.lastUpdated ? new Date(data.lastUpdated.seconds * 1000).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '---';
-                studentsRawData.push({ name: data.name, email: data.email, progress: avgPct, lastSeen: timeStr });
 
                 tbody.innerHTML += `
                     <tr>
@@ -205,7 +234,10 @@
                                 <span style="font-weight:600; width:45px;">${avgPct}%</span>
                             </div>
                         </td>
-                        <td style="color:#5c636a; font-size:0.8rem;">${timeStr}</td>
+                        <td>
+                            ${data.isGuest ? `<button class="btn btn-fix" onclick="openMergeModal('${data.id}', '${data.name}')">Fix</button>` : ''}
+                            <span class="btn-del" onclick="deleteUserRecord('${data.id}')">Delete</span>
+                        </td>
                     </tr>`;
             });
             document.getElementById('total-students').innerText = count;
@@ -213,7 +245,6 @@
             document.getElementById('top-performer').innerText = topName;
         });
 
-        // Watch Chat Data
         onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc")), (snap) => {
             const chatList = document.getElementById('admin-chat-list');
             chatList.innerHTML = '';
@@ -228,10 +259,44 @@
         });
     }
 
-    window.deleteMsg = async (id) => { if(confirm("Permanently delete this message?")) await deleteDoc(doc(db, "chat_messages", id)); };
+    // MANUAL MERGE HANDLERS
+    window.openMergeModal = (id, name) => {
+        pendingGuestId = id;
+        document.getElementById('guest-info').innerText = `Merge progress for "${name}" into a Google Account?`;
+        document.getElementById('merge-modal').style.display = 'flex';
+    };
+
+    window.executeManualMerge = async () => {
+        const targetGoogleId = document.getElementById('google-picker').value;
+        if (!targetGoogleId) return alert("Select a target Google account!");
+
+        const guestDoc = rawStudentDocs.find(d => d.id === pendingGuestId);
+        const googleDoc = rawStudentDocs.find(d => d.id === targetGoogleId);
+
+        if (guestDoc && googleDoc) {
+            let mergedProgress = { ...googleDoc.progress };
+            for (let key in guestDoc.progress) {
+                if (!mergedProgress[key]) mergedProgress[key] = guestDoc.progress[key];
+                else {
+                    for (let i = 0; i < guestDoc.progress[key].length; i++) {
+                        if (guestDoc.progress[key][i] === 1) mergedProgress[key][i] = 1;
+                    }
+                }
+            }
+            try {
+                await updateDoc(doc(db, "user_progress", targetGoogleId), { progress: mergedProgress });
+                await deleteDoc(doc(db, "user_progress", pendingGuestId));
+                document.getElementById('merge-modal').style.display = 'none';
+                alert("Data Successfully Restored!");
+            } catch (e) { alert("Merge failed: " + e.message); }
+        }
+    };
+
+    window.deleteUserRecord = async (id) => { if(confirm("Delete this student data?")) await deleteDoc(doc(db, "user_progress", id)); };
+    window.deleteMsg = async (id) => { if(confirm("Permanently delete message?")) await deleteDoc(doc(db, "chat_messages", id)); };
     
     window.clearAllChat = async () => {
-        if(confirm("DANGER: Are you sure you want to wipe the entire classroom chat history?")) {
+        if(confirm("Wipe chat history?")) {
             const batch = writeBatch(db);
             const snap = await getDocs(collection(db, "chat_messages"));
             snap.forEach(d => batch.delete(d.ref));
@@ -240,15 +305,22 @@
     };
 
     window.downloadCSV = () => {
-        if(studentsRawData.length === 0) return alert("No data available to export.");
-        let csv = "Student Name,Email,Completion Percentage,Last Active\n";
-        studentsRawData.forEach(r => csv += `"${r.name}","${r.email}",${r.progress}%,"${r.lastSeen}"\n`);
+        let csv = "Student Name,Email,Completion %,Last Active\n";
+        rawStudentDocs.forEach(r => {
+            let videoSums = 0;
+            for(let i=0; i<TOTAL_VIDEOS; i++) {
+                if(r.progress && r.progress[i]) {
+                    const watched = r.progress[i].filter(x => x === 1).length;
+                    videoSums += (watched / r.progress[i].length) * 100;
+                }
+            }
+            const p = (videoSums / TOTAL_VIDEOS).toFixed(1);
+            csv += `"${r.name}","${r.email || 'Guest'}",${p}%,"${r.lastUpdated}"\n`;
+        });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-        link.download = `TOC_Class_Report_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
+        link.download = `TOC_Class_Report.csv`; link.click();
     };
 </script>
 </body>
 </html>
-
