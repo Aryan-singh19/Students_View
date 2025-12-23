@@ -317,22 +317,29 @@
     };
 
     window.downloadCSV = () => {
-        let csv = "Student Name,Email,Completion %,Last Active\n";
-        rawStudentDocs.forEach(r => {
-            let videoSums = 0;
-            for(let i=0; i<TOTAL_VIDEOS; i++) {
-                if(r.progress && r.progress[i]) {
-                    const watched = r.progress[i].filter(x => x === 1).length;
-                    videoSums += (watched / r.progress[i].length) * 100;
-                }
+    let csv = "Student Name,Email,Completion %,Last Active\n";
+    rawStudentDocs.forEach(r => {
+        let videoSums = 0;
+        for(let i=0; i<TOTAL_VIDEOS; i++) {
+            if(r.progress && r.progress[i]) {
+                const watched = r.progress[i].filter(x => x === 1).length;
+                videoSums += (watched / r.progress[i].length) * 100;
             }
-            const p = (videoSums / TOTAL_VIDEOS).toFixed(1);
-            csv += `"${r.name}","${r.email || 'Guest'}",${p}%,"${r.lastUpdated}"\n`;
-        });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-        link.download = `TOC_Class_Report.csv`; link.click();
-    };
+        }
+        const p = (videoSums / TOTAL_VIDEOS).toFixed(1);
+        
+        // FIX: Convert raw object into readable "24 Dec 2025, 12:50 am"
+        const dateStr = r.lastUpdated && r.lastUpdated.seconds 
+            ? new Date(r.lastUpdated.seconds * 1000).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) 
+            : '---';
+
+        csv += `"${r.name}","${r.email || 'Guest'}",${p}%,"${dateStr}"\n`;
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    link.download = `TOC_Class_Report.csv`; 
+    link.click();
+};
 </script>
 </body>
 </html>
