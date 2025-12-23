@@ -54,6 +54,10 @@
         .m-box { background:var(--card); padding:30px; border-radius:20px; width:450px; border:1px solid var(--border); box-shadow: 0 20px 50px black; }
         select { width:100%; padding:12px; background:#111; color:white; border:1px solid #333; margin:20px 0; border-radius:8px; font-size:1rem; }
 
+        /* LIVE TEXT STYLES */
+        .live-text { color: var(--success); font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
         /* CHAT MANAGEMENT */
         .chat-mgmt { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 25px; }
         .chat-scroll { max-height: 400px; overflow-y: auto; background: #0b0e11; border-radius: 12px; padding: 10px; border: 1px solid #1c2126; }
@@ -68,7 +72,7 @@
         .btn-csv:hover { background: #00a946; box-shadow: 0 0 15px rgba(0,200,83,0.3); }
         .btn-clear { background: transparent; color: var(--danger); border-color: var(--danger); }
         .btn-clear:hover { background: var(--danger); color: white; }
-        .btn-fix { background: var(--success); color: white; padding: 6px 12px; font-size: 0.7rem; border: none; }
+        .btn-fix { background: var(--success); color: white; padding: 6px 12px; font-size: 0.7rem; border: none; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -130,10 +134,11 @@
                     <th>Authentication</th>
                     <th>Curriculum Progress</th>
                     <th>Last Active</th>
+                    <th>Management</th>
                 </tr>
             </thead>
             <tbody id="data-table">
-                <tr><td colspan="4" style="text-align:center; padding:60px; color:#5c636a;">Initializing Secure Connection...</td></tr>
+                <tr><td colspan="5" style="text-align:center; padding:60px; color:#5c636a;">Initializing Secure Connection...</td></tr>
             </tbody>
         </table>
     </div>
@@ -186,7 +191,7 @@
     });
 
     function initDashboard() {
-        onSnapshot(collection(db, "user_progress"), (snapshot) => {
+        onSnapshot(query(collection(db, "user_progress"), orderBy("lastUpdated", "desc")), (snapshot) => {
             const tbody = document.getElementById('data-table');
             const picker = document.getElementById('google-picker');
             tbody.innerHTML = ''; 
@@ -219,7 +224,11 @@
                 totalPctSum += avgPct; count++;
                 if(avgPct > topPct) { topPct = avgPct; topName = data.name || "Anonymous"; }
                 
-                const timeStr = data.lastUpdated ? new Date(data.lastUpdated.seconds * 1000).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '---';
+                // LIVE MONITORING LOGIC
+                const lastUpdated = data.lastUpdated ? data.lastUpdated.seconds * 1000 : 0;
+                const now = Date.now();
+                const isLive = (now - lastUpdated) < 300000; // 5 minute threshold for "Live"
+                const timeStr = data.lastUpdated ? new Date(lastUpdated).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '---';
 
                 tbody.innerHTML += `
                     <tr>
@@ -233,6 +242,9 @@
                                 <div class="prog-track"><div class="prog-bar" style="width:${avgPct}%"></div></div>
                                 <span style="font-weight:600; width:45px;">${avgPct}%</span>
                             </div>
+                        </td>
+                        <td class="${isLive ? 'live-text' : ''}">
+                            ${isLive ? '🟢 Studying Now' : timeStr}
                         </td>
                         <td>
                             ${data.isGuest ? `<button class="btn btn-fix" onclick="openMergeModal('${data.id}', '${data.name}')">Fix</button>` : ''}
