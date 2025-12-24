@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Force Sync & Boost</title>
+    <style>
+        body { background: #050505; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .admin-card { border: 1px solid #ff4081; padding: 30px; border-radius: 15px; background: #111; text-align: center; width: 380px; box-shadow: 0 0 20px rgba(255, 64, 129, 0.3); }
+        .pct-display { font-size: 3.5rem; font-weight: bold; color: #ff4081; margin: 10px 0; }
+        input[type="range"] { width: 100%; accent-color: #ff4081; margin: 20px 0; cursor: pointer; }
+        button { background: #ff4081; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .log { margin-top: 15px; font-size: 0.75rem; color: #666; text-align: left; background: #000; padding: 8px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="admin-card">
+    <h2 style="margin:0;">Remote Boost: Khushee</h2>
+    <p style="font-size: 0.8rem; color: #555;">singhkhushee99@gmail.com</p>
+    
+    <div class="pct-display" id="pctText">50%</div>
+    <input type="range" id="pctSlide" min="20" max="85" value="50" oninput="document.getElementById('pctText').innerText = this.value + '%'">
+    
+    <button onclick="forceLogout()" style="background: #444;">1. Force Session Logout</button>
+    
+    <button onclick="applyBoost()">2. Inject Magic Progress</button>
+    
+    <div class="log" id="statusLog">Status: Ready</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteField, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw", 
+        authDomain: "students-view.firebaseapp.com", 
+        projectId: "students-view" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function getKhusheeDoc() {
+        const q = query(collection(db, "user_progress"), where("email", "==", "singhkhushee99@gmail.com"));
+        const snap = await getDocs(q);
+        return snap.empty ? null : snap.docs[0];
+    }
+
+    // This "breaks" her local sync by removing her identity fields temporarily
+    window.forceLogout = async () => {
+        const docSnap = await getKhusheeDoc();
+        if (!docSnap) return alert("User not found!");
+        
+        const log = document.getElementById('statusLog');
+        log.innerText = "Status: Breaking session...";
+
+        await updateDoc(doc(db, "user_progress", docSnap.id), {
+            name: deleteField(), // Removing name often triggers 'Unknown' logic which stops sync
+            lastActive: deleteField(),
+            forceLogout: true // A flag that her browser might react to if listening
+        });
+
+        log.innerText = "Status: Session Broken. She should be logged out now.";
+    };
+
+    window.applyBoost = async () => {
+        const docSnap = await getKhusheeDoc();
+        const pct = parseInt(document.getElementById('pctSlide').value);
+        const log = document.getElementById('statusLog');
+
+        // Create a believable 20-video progress map
+        const mockProgress = {};
+        const vidsToFill = Math.floor(20 * (pct / 100));
+        for(let i=0; i<20; i++) {
+            mockProgress[i] = (i < vidsToFill) ? new Array(600).fill(1) : new Array(600).fill(0);
+        }
+
+        await updateDoc(doc(db, "user_progress", docSnap.id), {
+            progress: mockProgress,
+            name: "Khushee Singh", // Restoring her name
+            lastUpdated: serverTimestamp()
+        });
+
+        log.innerText = "Status: ✅ Progress Injected! " + pct + "% ready.";
+        alert("Boost Complete. When she logs back in, she'll see the surprise.");
+    };
+</script>
+</body>
+</html>
