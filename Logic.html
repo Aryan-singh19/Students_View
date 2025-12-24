@@ -1,31 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Surgical Boost | Khushee Singh</title>
+    <title>Surgical Admin | Khushee</title>
     <style>
-        body { background: #0b0e11; color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: #15191c; border: 1px solid #ff1744; padding: 40px; border-radius: 20px; width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body { background: #0b0e11; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #15191c; border: 1px solid #ff1744; padding: 40px; border-radius: 20px; width: 400px; text-align: center; }
         .pct { font-size: 5rem; font-weight: 800; color: #ff1744; margin: 10px 0; }
         input[type="range"] { width: 100%; accent-color: #ff1744; margin: 25px 0; cursor: pointer; }
-        button { background: #ff1744; color: white; border: none; padding: 18px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; font-size: 1.1rem; }
-        .status { margin-top: 20px; font-size: 0.8rem; color: #5c636a; border-top: 1px solid #2d3339; padding-top: 15px; }
+        button { background: #ff1744; color: white; border: none; padding: 18px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+        .status { margin-top: 20px; font-size: 0.8rem; color: #5c636a; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 style="margin:0; letter-spacing:-1px;">Khushee Singh</h2>
-    <p style="color:#5c636a; font-size:0.8rem;">singhkhushee99@gmail.com</p>
-    
+    <h2 id="admin-name">Authenticating Admin...</h2>
     <div class="pct" id="val">50%</div>
     <input type="range" id="slide" min="10" max="90" value="50" oninput="document.getElementById('val').innerText = this.value + '%'">
-    
-    <button onclick="injectSurgical()">🚀 Apply Silent Boost</button>
-    <div class="status" id="log">Ready to inject...</div>
+    <button id="boost-btn" onclick="applyBoost()" style="display:none;">🚀 Apply Surgical Boost</button>
+    <div class="status" id="log">Please wait for Admin login...</div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
     import { getFirestore, collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
     const firebaseConfig = { 
@@ -35,52 +33,57 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
-    window.injectSurgical = async () => {
+    // 1. MUST AUTHENTICATE AS ADMIN FIRST
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.email === "aryansingh19gh@gmail.com") {
+            document.getElementById('admin-name').innerText = "Admin: Aryan";
+            document.getElementById('boost-btn').style.display = 'block';
+            document.getElementById('log').innerText = "Authenticated. Ready to inject.";
+        } else {
+            signInWithPopup(auth, provider).catch(e => {
+                document.getElementById('log').innerText = "Auth Error: " + e.message;
+            });
+        }
+    });
+
+    window.applyBoost = async () => {
         const log = document.getElementById('log');
         const targetPct = parseInt(document.getElementById('slide').value);
-        log.innerText = "Accessing Cloud Database...";
-
-        const q = query(collection(db, "user_progress"), where("email", "==", "singhkhushee99@gmail.com"));
-        const snap = await getDocs(q);
-        
-        if (snap.empty) {
-            log.innerText = "❌ Error: Khushee's email not found.";
-            return;
-        }
-
-        // MATCHING DASHBOARD (1).HTML: Exactly 19 videos
-        const TOTAL_VIDEOS = 19; 
-        const mockProgress = {};
-        
-        // Calculate how many videos to mark as 100% finished
-        const vidsToFill = Math.floor(TOTAL_VIDEOS * (targetPct / 100));
-
-        for(let i=0; i < TOTAL_VIDEOS; i++) {
-            // We use 600 seconds (10 mins) as a standard video length
-            if (i < vidsToFill) {
-                mockProgress[i] = new Array(600).fill(1); // 100% watched
-            } else if (i === vidsToFill) {
-                // Partial fill for the current video to reach exact %
-                mockProgress[i] = new Array(600).fill(0).map((_, idx) => idx < 150 ? 1 : 0);
-            } else {
-                mockProgress[i] = new Array(600).fill(0); // Unwatched
-            }
-        }
+        log.innerText = "Finding singhkhushee99@gmail.com...";
 
         try {
-            const userDocId = snap.docs[0].id;
-            await updateDoc(doc(db, "user_progress", userDocId), {
+            const q = query(collection(db, "user_progress"), where("email", "==", "singhkhushee99@gmail.com"));
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                log.innerText = "❌ Khushee not found in Database.";
+                return;
+            }
+
+            // Exactly 19 videos to match dashboard (1).html loop
+            const TOTAL_VIDEOS = 19; 
+            const mockProgress = {};
+            const vidsToFill = Math.floor(TOTAL_VIDEOS * (targetPct / 100));
+
+            for(let i=0; i < TOTAL_VIDEOS; i++) {
+                // Creates arrays with dummy lengths so math doesn't return NaN
+                mockProgress[i] = (i < vidsToFill) ? new Array(500).fill(1) : new Array(500).fill(0);
+            }
+
+            await updateDoc(doc(db, "user_progress", snap.docs[0].id), {
                 progress: mockProgress,
                 lastUpdated: serverTimestamp(),
-                // Keep her original name so nothing looks suspicious
-                name: "Khushee Singh" 
+                name: "Khushee Singh"
             });
-            log.innerText = "✅ Magic Applied! Refresh your Analytics Dashboard.";
-            alert("Success! 19-video structure injected for Khushee.");
+
+            log.innerText = "✅ Success! Boosted to " + targetPct + "%.";
+            alert("Surgical Injection Complete!");
         } catch (e) {
-            log.innerText = "❌ Injection failed: " + e.message;
+            log.innerText = "❌ Database Error: " + e.message;
         }
     };
 </script>
