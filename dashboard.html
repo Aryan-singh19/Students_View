@@ -180,7 +180,7 @@
     };
 
     onAuthStateChanged(auth, (user) => {
-        const admins = ["aryansingh19gh@gmail.com", "sir-email@gmail.com"];
+        const admins = ["aryansingh19gh@gmail.com", "yograjgwl@gmail.com"];
         if (user && admins.includes(user.email)) {
             document.getElementById('auth-overlay').style.display = 'none';
             initDashboard();
