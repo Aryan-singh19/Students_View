@@ -1,0 +1,41 @@
+name: Secure & Deploy
+
+on:
+  push:
+    branches:
+      - main  # Or 'master', depending on your default branch
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out your Clean Code
+      - name: Checkout Source
+        uses: actions/checkout@v3
+
+      # 2. Setup Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # 3. RUN THE ENCRYPTION SCRIPT
+      # This modifies index.html and dashboard.html in the virtual runner only.
+      - name: Encrypt Files
+        run: python Secure_build.py
+
+      # 4. Remove the python script so users can't download it from the live site
+      - name: Cleanup Build Script
+        run: rm Secure_build.py
+
+      # 5. Deploy the Modified (Encrypted) files to GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages # The branch the website runs from
+          folder: .        # Deploy the current directory
+          
