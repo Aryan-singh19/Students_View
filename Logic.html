@@ -1,30 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Surgical Admin | Khushee</title>
+    <title>Secure Global Admin</title>
     <style>
-        body { background: #0b0e11; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: #15191c; border: 1px solid #ff1744; padding: 40px; border-radius: 20px; width: 400px; text-align: center; }
-        .pct { font-size: 5rem; font-weight: 800; color: #ff1744; margin: 10px 0; }
-        input[type="range"] { width: 100%; accent-color: #ff1744; margin: 25px 0; cursor: pointer; }
-        button { background: #ff1744; color: white; border: none; padding: 18px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
-        .status { margin-top: 20px; font-size: 0.8rem; color: #5c636a; }
+        body { background: #0b0e11; color: #fff; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #15191c; border: 1px solid #ff1744; padding: 40px; border-radius: 20px; width: 450px; text-align: center; display: none; }
+        #auth-screen { text-align: center; }
+        select, input[type="range"] { width: 100%; margin: 20px 0; background: #0b0e11; color: #fff; border: 1px solid #2d3339; padding: 12px; border-radius: 8px; }
+        .pct-val { font-size: 4rem; font-weight: 800; color: #ff1744; }
+        .btn { background: #ff1744; color: white; border: none; padding: 18px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+        .status { margin-top: 20px; font-size: 0.8rem; color: #5c636a; text-align: left; background: #000; padding: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2 id="admin-name">Authenticating Admin...</h2>
-    <div class="pct" id="val">50%</div>
-    <input type="range" id="slide" min="10" max="90" value="50" oninput="document.getElementById('val').innerText = this.value + '%'">
-    <button id="boost-btn" onclick="applyBoost()" style="display:none;">🚀 Apply Surgical Boost</button>
-    <div class="status" id="log">Please wait for Admin login...</div>
+<div id="auth-screen">
+    <button class="btn" onclick="triggerLogin()">Login to Administrative Portal</button>
+    <p id="error-msg" style="color: #ff1744; margin-top: 15px;"></p>
+</div>
+
+<div class="card" id="admin-panel">
+    <h2 id="admin-welcome">Admin Active</h2>
+    <label style="font-size: 0.8rem; color: #888;">SELECT STUDENT TARGET:</label>
+    <select id="student-picker"></select>
+
+    <div class="pct-val" id="pct-display">50%</div>
+    <input type="range" id="pct-slider" min="0" max="100" value="50" oninput="document.getElementById('pct-display').innerText = this.value + '%'">
+
+    <button class="btn" onclick="updateStudent()">⚡ Overwrite Progress</button>
+    <div class="status" id="log-console">Ready to manipulate data.</div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-    import { getFirestore, collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
     const firebaseConfig = { 
         apiKey: "AIzaSyByqcto5JMr3BWJyemb9Q2XLi8OSBRfaTw", 
@@ -37,53 +47,65 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    // 1. MUST AUTHENTICATE AS ADMIN FIRST
-    onAuthStateChanged(auth, (user) => {
-        if (user && user.email === "aryansingh19gh@gmail.com") {
-            document.getElementById('admin-name').innerText = "Admin: Aryan";
-            document.getElementById('boost-btn').style.display = 'block';
-            document.getElementById('log').innerText = "Authenticated. Ready to inject.";
-        } else {
-            signInWithPopup(auth, provider).catch(e => {
-                document.getElementById('log').innerText = "Auth Error: " + e.message;
-            });
+    // Restricted Email - Only this user can see the panel
+    const ADMIN_EMAIL = "aryansingh19gh@gmail.com";
+
+    window.triggerLogin = () => signInWithPopup(auth, provider);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            if (user.email === ADMIN_EMAIL) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('admin-welcome').innerText = "Welcome, " + user.displayName;
+                loadStudents();
+            } else {
+                document.getElementById('error-msg').innerText = "Access Denied: " + user.email + " is not authorized.";
+                auth.signOut();
+            }
         }
     });
 
-    window.applyBoost = async () => {
-        const log = document.getElementById('log');
-        const targetPct = parseInt(document.getElementById('slide').value);
-        log.innerText = "Finding singhkhushee99@gmail.com...";
+    async function loadStudents() {
+        const picker = document.getElementById('student-picker');
+        const snap = await getDocs(collection(db, "user_progress"));
+        picker.innerHTML = "";
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.name) {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.innerText = `${data.name} (${data.email || 'Guest'})`;
+                picker.appendChild(opt);
+            }
+        });
+    }
+
+    window.updateStudent = async () => {
+        const userId = document.getElementById('student-picker').value;
+        const targetPct = parseInt(document.getElementById('pct-slider').value);
+        const log = document.getElementById('log-console');
+
+        // Logic matched to your Dashboard's 19-video loop
+        const TOTAL_VIDEOS = 19;
+        const mockProgress = {};
+        const vidsToFill = Math.floor(TOTAL_VIDEOS * (targetPct / 100));
+
+        for(let i=0; i < TOTAL_VIDEOS; i++) {
+            // Fill 600-second arrays with 1s to satisfy your dashboard
+            mockProgress[i] = (i < vidsToFill) ? new Array(600).fill(1) : new Array(600).fill(0);
+        }
 
         try {
-            const q = query(collection(db, "user_progress"), where("email", "==", "singhkhushee99@gmail.com"));
-            const snap = await getDocs(q);
-            
-            if (snap.empty) {
-                log.innerText = "❌ Khushee not found in Database.";
-                return;
-            }
-
-            // Exactly 19 videos to match dashboard (1).html loop
-            const TOTAL_VIDEOS = 19; 
-            const mockProgress = {};
-            const vidsToFill = Math.floor(TOTAL_VIDEOS * (targetPct / 100));
-
-            for(let i=0; i < TOTAL_VIDEOS; i++) {
-                // Creates arrays with dummy lengths so math doesn't return NaN
-                mockProgress[i] = (i < vidsToFill) ? new Array(500).fill(1) : new Array(500).fill(0);
-            }
-
-            await updateDoc(doc(db, "user_progress", snap.docs[0].id), {
+            await updateDoc(doc(db, "user_progress", userId), {
                 progress: mockProgress,
                 lastUpdated: serverTimestamp(),
-                name: "Khushee Singh"
+                lastActive: "Admin Tweak"
             });
-
-            log.innerText = "✅ Success! Boosted to " + targetPct + "%.";
-            alert("Surgical Injection Complete!");
+            log.innerText = "✅ Success: Student " + userId + " updated to " + targetPct + "%";
+            alert("Update applied successfully.");
         } catch (e) {
-            log.innerText = "❌ Database Error: " + e.message;
+            log.innerText = "❌ Error: " + e.message;
         }
     };
 </script>
