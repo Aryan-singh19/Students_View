@@ -145,7 +145,7 @@
     </div>
 </div>
 
-<script type="module">
+        <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
     import { getFirestore, doc, setDoc, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
@@ -163,111 +163,138 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
-    let currentUser = null;
 
-    // HYBRID LOGIN: Fixes "missing initial state" and mobile blocks
-    window.loginWithGoogle = async () => {
-        try { 
-            await signInWithPopup(auth, provider); 
-        } catch (e) { 
-            console.log("Popup blocked or session error, trying redirect...");
-            await signInWithRedirect(auth, provider); 
-        }
-    };
+    // --- HARDENED PROTECTION WRAPPER ---
+    (function() {
+        // Block F12, Right Click, and Inspect Shortcuts
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = (e) => {
+            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74))) return false;
+        };
 
-    window.identifyGuest = () => { 
-        const n = document.getElementById('username-inp').value.trim(); 
-        if(n.length > 2) { 
-            localStorage.setItem('toc_username', n); 
-            location.reload(); 
-        } 
-    };
+        let currentUser = null;
+        let syncInterval = null;
 
-    // WAIT FOR AUTH BEFORE PUMPING DATA
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            const name = user.displayName || localStorage.getItem('toc_username');
-            
-            // Only show modal if user is a Guest AND has no saved name
-            if(user.isAnonymous && !name) { 
-                document.getElementById('login-modal').style.display = 'flex'; 
-            } else { 
-                document.getElementById('login-modal').style.display = 'none';
-                document.getElementById('auth-label').innerText = name;
-                await syncCloud(); 
-                initChat(); 
-                initReactions();
+        window.loginWithGoogle = async () => {
+            try { 
+                await signInWithPopup(auth, provider); 
+            } catch (e) { 
+                console.log("Popup blocked or session error, trying redirect...");
+                await signInWithRedirect(auth, provider); 
             }
-        } else {
-            // No user found, start a session to capture data
-            signInAnonymously(auth);
+        };
+
+        window.identifyGuest = () => { 
+            const n = document.getElementById('username-inp').value.trim(); 
+            if(n.length > 2) { 
+                localStorage.setItem('toc_username', n); 
+                location.reload(); 
+            } 
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const name = user.displayName || localStorage.getItem('toc_username');
+                
+                if(user.isAnonymous && !name) { 
+                    document.getElementById('login-modal').style.display = 'flex'; 
+                } else { 
+                    document.getElementById('login-modal').style.display = 'none';
+                    document.getElementById('auth-label').innerText = name;
+                    
+                    // START REGULATED SYNC CYCLE
+                    startSyncCycle();
+                    initChat(); 
+                    initReactions();
+                }
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        // TAB-SWITCH PROTECTION: Stops pumping if student leaves tab
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            } else {
+                startSyncCycle();
+            }
+        });
+
+        // Heartbeat: Only pings cloud every 30s to keep Dashboard accurate
+        function startSyncCycle() {
+            if (!syncInterval && currentUser) {
+                syncCloud(); // Run once immediately
+                syncInterval = setInterval(syncCloud, 30000); 
+            }
         }
-    });
 
-    async function syncCloud() {
-        if(!currentUser) return;
-        const p = localStorage.getItem('toc_progress_v6'); 
-        const n = localStorage.getItem('toc_notes_v6');
-        const finalName = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
+        async function syncCloud() {
+            if(!currentUser || document.hidden) return; // Prevent hidden tab pumping
+            const p = localStorage.getItem('toc_progress_v6'); 
+            const n = localStorage.getItem('toc_notes_v6');
+            const finalName = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
 
-        await setDoc(doc(db, "user_progress", currentUser.uid), {
-            name: finalName,
-            email: currentUser.email || "N/A", 
-            isGuest: currentUser.isAnonymous,
-            progress: p ? JSON.parse(p) : {}, 
-            notes: n ? JSON.parse(n) : {}, 
-            lastUpdated: serverTimestamp()
-        }, { merge: true });
-    }
+            await setDoc(doc(db, "user_progress", currentUser.uid), {
+                name: finalName,
+                email: currentUser.email || "N/A", 
+                isGuest: currentUser.isAnonymous,
+                progress: p ? JSON.parse(p) : {}, 
+                notes: n ? JSON.parse(n) : {}, 
+                lastUpdated: serverTimestamp()
+            }, { merge: true });
+        }
 
-    window.pushStep = (p) => { 
-        if(currentUser) setDoc(doc(db, "user_progress", currentUser.uid), { 
-            progress: p, 
-            lastUpdated: serverTimestamp() 
-        }, { merge: true }); 
-    };
-    
-    function initChat() {
-        onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
-            const cont = document.getElementById('chat-msgs'); cont.innerHTML = '';
-            snap.docs.reverse().forEach(d => {
-                const m = d.data(); const div = document.createElement('div');
-                div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
-                div.innerHTML = `<b>${escape(m.user)}</b>: <span>${escape(m.text)}</span>`;
-                cont.appendChild(div);
+        // Updated pushStep: Updates local storage and respects the heartbeat
+        window.pushStep = (p) => { 
+            if(currentUser) {
+                localStorage.setItem('toc_progress_v6', JSON.stringify(p));
+            } 
+        };
+        
+        function initChat() {
+            onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
+                const cont = document.getElementById('chat-msgs'); cont.innerHTML = '';
+                snap.docs.reverse().forEach(d => {
+                    const m = d.data(); const div = document.createElement('div');
+                    div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
+                    div.innerHTML = `<b>${escape(m.user)}</b>: <span>${escape(m.text)}</span>`;
+                    cont.appendChild(div);
+                });
+                cont.scrollTop = cont.scrollHeight;
             });
-            cont.scrollTop = cont.scrollHeight;
-        });
-    }
+        }
 
-    window.sendMsg = () => {
-        const inp = document.getElementById('chat-input'); if(!inp.value.trim() || !currentUser) return;
-        const sender = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
-        addDoc(collection(db, "chat_messages"), { 
-            text: inp.value, 
-            user: sender, 
-            uid: currentUser.uid, 
-            createdAt: serverTimestamp() 
-        });
-        inp.value = '';
-    };
+        window.sendMsg = () => {
+            const inp = document.getElementById('chat-input'); if(!inp.value.trim() || !currentUser) return;
+            const sender = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
+            addDoc(collection(db, "chat_messages"), { 
+                text: inp.value, 
+                user: sender, 
+                uid: currentUser.uid, 
+                createdAt: serverTimestamp() 
+            });
+            inp.value = '';
+        };
 
-    function initReactions() { 
-        onSnapshot(query(collection(db, "reactions"), orderBy("createdAt", "desc"), limit(1)), (s) => { 
-            s.docChanges().forEach(c => { if(c.type === "added") showHeart(); });
-        }); 
-    }
+        function initReactions() { 
+            onSnapshot(query(collection(db, "reactions"), orderBy("createdAt", "desc"), limit(1)), (s) => { 
+                s.docChanges().forEach(c => { if(c.type === "added") typeof showHeart === 'function' && showHeart(); });
+            }); 
+        }
 
-    window.sendReaction = () => { 
-        showHeart(); 
-        addDoc(collection(db, "reactions"), { type: "heart", createdAt: serverTimestamp() }); 
-    };
+        window.sendReaction = () => { 
+            if(typeof showHeart === 'function') showHeart(); 
+            addDoc(collection(db, "reactions"), { type: "heart", createdAt: serverTimestamp() }); 
+        };
 
-    function escape(s) { 
-        return s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ""; 
-    }
-        </script>
+        function escape(s) { 
+            return s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ""; 
+        }
+    })(); // END OF SHIELD
+                </script>
     
 <script>
     const VIDEOS = ["01 Intro to Grammar & Recursively Enumerable", "02 Language Generated by Grammar (Ex 1)", "03 Language Generated by Grammar (Ex 2)", "04 Language Generated by Grammar (Ex 3)", "05 RLG to LLG 1", "06 LLG to RLG", "07 Elimination of Useless Symbols (TOC)", "08 Context Free Grammar", "09 Push Down Automata", "10 Practice Questions PDA and NPDA", "11 Conversion of CFG to PDA", "12 Turing Machine", "13 Turing Machine: Practice Questions", "14 Intro to Recursively Enumerable Sets", "15 Undecidability & Comp. Classes", "16 Universal Turing Machine", "17 Computational Classes", "18 Sequence Detector (Moore & Mealy)", "19 Master PDA to CFG Conversion"];
