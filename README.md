@@ -1,6 +1,6 @@
 📚 Theory of Computation - Tracker
 A custom-built, YouTube-style video tracker for the Theory of Computation course. It tracks watch progress per second, prevents skipping/background play, and generates a downloadable report.
-🚀 Click Here to Open the Tracker
+🚀 Click Here to Open the Trackerhttps://aryan-singh19.github.io/Students_View/
 Features
 Dark Mode UI: Designed to match the YouTube aesthetic.
 Real-Time Tracking: Progress bars update live on the sidebar thumbnails.
