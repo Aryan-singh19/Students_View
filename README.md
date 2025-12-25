@@ -4,7 +4,7 @@
 
 <p> <strong>A YouTube-style learning environment with integrated attention-tracking and academic integrity enforcement.</strong> </p> 
 
-<p> <a href="https://aryan-singh19.github.io/Students\_View/"><strong>🚀 Launch Live Application</strong></a> · <a href="\#-key-features">Explore Features</a> · <a href="\#-technical-architecture">Technical Architecture</a> </p> 
+<p> <a href="https://aryan-singh19.github.io/Students_View/"><strong>🚀 Launch Live Application</strong></a> · <a href="\#-key-features">Explore Features</a> · <a href="\#-technical-architecture">Technical Architecture</a> </p> 
 
 <p> <img 
 
