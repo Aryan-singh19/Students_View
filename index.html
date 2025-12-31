@@ -53,23 +53,23 @@
         .side-tab { flex: 1; background: transparent; border: none; color: #888; padding: 15px; cursor: pointer; font-weight: 600; position: relative; }
         .side-tab.active { color: white; border-bottom: 3px solid white; }
         
-        /* Unread Dot */
         .side-tab.unread::after { content: ''; position: absolute; top: 12px; right: 20%; width: 8px; height: 8px; background: var(--brand); border-radius: 50%; }
 
         .chat-view, .playlist-view { flex: 1; display: none; flex-direction: column; overflow-y: auto; }
         .chat-view.active, .playlist-view.active { display: flex; }
         
-        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
         .msg { font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
-        .msg b { color: #aaa; font-size: 0.8rem; margin-right: 5px; }
+        .msg-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+        .msg b { color: #aaa; font-size: 0.8rem; }
         .msg.me b { color: #3ea6ff; }
+        .msg-time { font-size: 0.7rem; color: #555; }
         
         .playlist-item { display: flex; gap: 10px; padding: 10px; cursor: pointer; border-bottom: 1px solid transparent; }
         .playlist-item.active { background: #333; border-left: 4px solid var(--brand); }
         .thumb { width: 100px; height: 56px; background: #000; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
         .progress-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--brand); width: 0%; }
 
-        /* Toast Styles */
         #chat-toast { position: fixed; bottom: 20px; right: 420px; background: #333; color: white; padding: 12px 20px; border-radius: 8px; border-left: 4px solid #3ea6ff; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 1000; display: none; animation: slideUp 0.3s ease; max-width: 300px; }
 
         .reaction-container { position: absolute; bottom: 80px; right: 20px; pointer-events: none; width: 50px; height: 200px; overflow: hidden; }
@@ -176,7 +176,6 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    // --- HARDENED PROTECTION WRAPPER ---
     (function() {
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = (e) => {
@@ -269,6 +268,12 @@
             setTimeout(() => { toast.style.display = 'none'; }, 4000);
         }
 
+        function formatMsgTime(ts) {
+            if (!ts) return "";
+            const date = ts.toDate();
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
         function initChat() {
             onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
                 const cont = document.getElementById('chat-msgs'); 
@@ -280,15 +285,21 @@
                 snap.docs.reverse().forEach(d => {
                     const m = d.data(); 
                     latestMsg = m;
+                    const timeStr = formatMsgTime(m.createdAt);
                     const div = document.createElement('div');
                     div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
-                    div.innerHTML = `<b>${escape(m.user)}</b>: <span>${escape(m.text)}</span>`;
+                    div.innerHTML = `
+                        <div class="msg-header">
+                            <b>${escape(m.user)}</b>
+                            <span class="msg-time">${timeStr}</span>
+                        </div>
+                        <span>${escape(m.text)}</span>
+                    `;
                     cont.appendChild(div);
                 });
                 
                 cont.scrollTop = cont.scrollHeight;
 
-                // Notifications: Only if not first load and not the user themselves
                 if (!isFirstLoad && latestMsg && latestMsg.uid !== currentUser.uid) {
                     if (!chatActive) {
                         document.getElementById('tab-btn-chat').classList.add('unread');
