@@ -50,8 +50,11 @@
 
         .sidebar { width: 400px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
         .side-tabs { display: flex; border-bottom: 1px solid var(--border); background: #151515; }
-        .side-tab { flex: 1; background: transparent; border: none; color: #888; padding: 15px; cursor: pointer; font-weight: 600; }
+        .side-tab { flex: 1; background: transparent; border: none; color: #888; padding: 15px; cursor: pointer; font-weight: 600; position: relative; }
         .side-tab.active { color: white; border-bottom: 3px solid white; }
+        
+        /* Unread Dot */
+        .side-tab.unread::after { content: ''; position: absolute; top: 12px; right: 20%; width: 8px; height: 8px; background: var(--brand); border-radius: 50%; }
 
         .chat-view, .playlist-view { flex: 1; display: none; flex-direction: column; overflow-y: auto; }
         .chat-view.active, .playlist-view.active { display: flex; }
@@ -66,19 +69,28 @@
         .thumb { width: 100px; height: 56px; background: #000; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
         .progress-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--brand); width: 0%; }
 
+        /* Toast Styles */
+        #chat-toast { position: fixed; bottom: 20px; right: 420px; background: #333; color: white; padding: 12px 20px; border-radius: 8px; border-left: 4px solid #3ea6ff; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 1000; display: none; animation: slideUp 0.3s ease; max-width: 300px; }
+
         .reaction-container { position: absolute; bottom: 80px; right: 20px; pointer-events: none; width: 50px; height: 200px; overflow: hidden; }
         .floating-heart { position: absolute; bottom: 0; right: 10px; font-size: 24px; animation: floatUp 2s ease-out forwards; opacity: 0; }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 200; display: flex; align-items: center; justify-content: center; }
         .modal-box { background: var(--bg-panel); padding: 30px; border-radius: 12px; width: 380px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px black; }
 
+        .chat-input-area { padding: 10px; display: flex; gap: 5px; border-top: 1px solid var(--border); }
+        .chat-inp { flex: 1; background: #111; border: 1px solid #333; color: white; padding: 8px; border-radius: 4px; }
+        .chat-btn, .react-btn { background: #222; border: 1px solid #333; color: white; cursor: pointer; padding: 5px 10px; border-radius: 4px; }
+
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-150px) scale(1.5); opacity: 0; } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @media(max-width: 900px) { .grid-container { flex-direction: column; } .sidebar { width: 100%; height: 500px; } }
+        @media(max-width: 900px) { .grid-container { flex-direction: column; } .sidebar { width: 100%; height: 500px; } #chat-toast { right: 20px; bottom: 520px; } }
     </style>
 </head>
 <body>
+
+<div id="chat-toast"></div>
 
 <div class="modal" id="login-modal">
     <div class="modal-box">
@@ -135,7 +147,7 @@
         </div>
     </div>
     <div class="sidebar">
-        <div class="side-tabs"><button class="side-tab active" onclick="setSideTab('chat')">Live Chat</button><button class="side-tab" onclick="setSideTab('playlist')">Playlist</button></div>
+        <div class="side-tabs"><button id="tab-btn-chat" class="side-tab active" onclick="setSideTab('chat')">Live Chat</button><button id="tab-btn-playlist" class="side-tab" onclick="setSideTab('playlist')">Playlist</button></div>
         <div id="view-chat" class="chat-view active">
             <div class="chat-messages" id="chat-msgs"></div>
             <div class="reaction-container" id="reaction-area"></div>
@@ -166,7 +178,6 @@
 
     // --- HARDENED PROTECTION WRAPPER ---
     (function() {
-        // Block F12, Right Click, and Inspect Shortcuts
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.onkeydown = (e) => {
             if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74))) return false;
@@ -174,6 +185,7 @@
 
         let currentUser = null;
         let syncInterval = null;
+        let isFirstLoad = true;
 
         window.loginWithGoogle = async () => {
             try { 
@@ -203,7 +215,6 @@
                     document.getElementById('login-modal').style.display = 'none';
                     document.getElementById('auth-label').innerText = name;
                     
-                    // START REGULATED SYNC CYCLE
                     startSyncCycle();
                     initChat(); 
                     initReactions();
@@ -213,7 +224,6 @@
             }
         });
 
-        // TAB-SWITCH PROTECTION: Stops pumping if student leaves tab
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
                 clearInterval(syncInterval);
@@ -223,16 +233,15 @@
             }
         });
 
-        // Heartbeat: Only pings cloud every 30s to keep Dashboard accurate
         function startSyncCycle() {
             if (!syncInterval && currentUser) {
-                syncCloud(); // Run once immediately
+                syncCloud();
                 syncInterval = setInterval(syncCloud, 30000); 
             }
         }
 
         async function syncCloud() {
-            if(!currentUser || document.hidden) return; // Prevent hidden tab pumping
+            if(!currentUser || document.hidden) return;
             const p = localStorage.getItem('toc_progress_v6'); 
             const n = localStorage.getItem('toc_notes_v6');
             const finalName = currentUser.displayName || localStorage.getItem('toc_username') || "Student";
@@ -247,23 +256,46 @@
             }, { merge: true });
         }
 
-        // Updated pushStep: Updates local storage and respects the heartbeat
         window.pushStep = (p) => { 
             if(currentUser) {
                 localStorage.setItem('toc_progress_v6', JSON.stringify(p));
             } 
         };
         
+        function showToast(sender, text) {
+            const toast = document.getElementById('chat-toast');
+            toast.innerHTML = `<strong style="color:#3ea6ff">${sender}:</strong> ${text}`;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+        }
+
         function initChat() {
             onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
-                const cont = document.getElementById('chat-msgs'); cont.innerHTML = '';
+                const cont = document.getElementById('chat-msgs'); 
+                const chatActive = document.getElementById('view-chat').classList.contains('active');
+                
+                let latestMsg = null;
+                cont.innerHTML = '';
+                
                 snap.docs.reverse().forEach(d => {
-                    const m = d.data(); const div = document.createElement('div');
+                    const m = d.data(); 
+                    latestMsg = m;
+                    const div = document.createElement('div');
                     div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
                     div.innerHTML = `<b>${escape(m.user)}</b>: <span>${escape(m.text)}</span>`;
                     cont.appendChild(div);
                 });
+                
                 cont.scrollTop = cont.scrollHeight;
+
+                // Notifications: Only if not first load and not the user themselves
+                if (!isFirstLoad && latestMsg && latestMsg.uid !== currentUser.uid) {
+                    if (!chatActive) {
+                        document.getElementById('tab-btn-chat').classList.add('unread');
+                        showToast(escape(latestMsg.user), escape(latestMsg.text));
+                    }
+                }
+                isFirstLoad = false;
             });
         }
 
@@ -293,7 +325,7 @@
         function escape(s) { 
             return s ? s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ""; 
         }
-    })(); // END OF SHIELD
+    })();
                 </script>
     
 <script>
@@ -364,7 +396,12 @@
     }
 
     window.setTab = (t) => { document.querySelectorAll('.tab, .panel').forEach(e => e.classList.remove('active','show')); event.target.classList.add('active'); document.getElementById(`tab-${t}`).classList.add('show'); };
-    window.setSideTab = (t) => { document.querySelectorAll('.side-tab, .chat-view, .playlist-view').forEach(e => e.classList.remove('active')); event.target.classList.add('active'); document.getElementById(`view-${t}`).classList.add('active'); };
+    window.setSideTab = (t) => { 
+        document.querySelectorAll('.side-tab, .chat-view, .playlist-view').forEach(e => e.classList.remove('active')); 
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if(btn) { btn.classList.add('active'); btn.classList.remove('unread'); }
+        document.getElementById(`view-${t}`).classList.add('active'); 
+    };
     window.resume = () => { document.getElementById('cheat-overlay').style.display='none'; player.playVideo(); };
     window.toggleFocus = () => document.body.classList.toggle('focus-mode');
     window.setSpeed = (s) => player.setPlaybackRate(parseFloat(s));
