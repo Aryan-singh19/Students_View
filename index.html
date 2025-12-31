@@ -86,6 +86,35 @@
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @media(max-width: 900px) { .grid-container { flex-direction: column; } .sidebar { width: 100%; height: 500px; } #chat-toast { right: 20px; bottom: 520px; } }
+        /* WhatsApp-style Date Header */
+.date-divider {
+    text-align: center;
+    margin: 20px 0 12px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.date-divider::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: #333;
+    z-index: 1;
+}
+.date-divider span {
+    background: var(--bg-dark);
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    color: #888;
+    position: relative;
+    z-index: 2;
+    text-transform: uppercase;
+    font-weight: 700;
+    border-radius: 4px;
+        }
+        
     </style>
 </head>
 <body>
@@ -269,46 +298,72 @@
         }
 
         function formatMsgTime(ts) {
-            if (!ts) return "";
-            const date = ts.toDate();
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
+    if (!ts) return "";
+    const date = ts.toDate();
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-        function initChat() {
-            onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
-                const cont = document.getElementById('chat-msgs'); 
-                const chatActive = document.getElementById('view-chat').classList.contains('active');
-                
-                let latestMsg = null;
-                cont.innerHTML = '';
-                
-                snap.docs.reverse().forEach(d => {
-                    const m = d.data(); 
-                    latestMsg = m;
-                    const timeStr = formatMsgTime(m.createdAt);
-                    const div = document.createElement('div');
-                    div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
-                    div.innerHTML = `
-                        <div class="msg-header">
-                            <b>${escape(m.user)}</b>
-                            <span class="msg-time">${timeStr}</span>
-                        </div>
-                        <span>${escape(m.text)}</span>
-                    `;
-                    cont.appendChild(div);
-                });
-                
-                cont.scrollTop = cont.scrollHeight;
+function getDayLabel(ts) {
+    if (!ts) return "";
+    const date = ts.toDate();
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
 
-                if (!isFirstLoad && latestMsg && latestMsg.uid !== currentUser.uid) {
-                    if (!chatActive) {
-                        document.getElementById('tab-btn-chat').classList.add('unread');
-                        showToast(escape(latestMsg.user), escape(latestMsg.text));
-                    }
-                }
-                isFirstLoad = false;
-            });
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function initChat() {
+    onSnapshot(query(collection(db, "chat_messages"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
+        const cont = document.getElementById('chat-msgs'); 
+        const chatActive = document.getElementById('view-chat').classList.contains('active');
+        
+        cont.innerHTML = '';
+        let lastDateLabel = null;
+        let latestMsg = null;
+
+        const docs = snap.docs.reverse();
+        docs.forEach(d => {
+            const m = d.data();
+            latestMsg = m;
+            
+            // Generate Date Divider (Today, Yesterday, or Date)
+            const currentDateLabel = getDayLabel(m.createdAt);
+            if (currentDateLabel && currentDateLabel !== lastDateLabel) {
+                const divider = document.createElement('div');
+                divider.className = 'date-divider';
+                divider.innerHTML = `<span>${currentDateLabel}</span>`;
+                cont.appendChild(divider);
+                lastDateLabel = currentDateLabel;
+            }
+
+            const timeStr = formatMsgTime(m.createdAt);
+            const div = document.createElement('div');
+            div.className = `msg ${m.uid === currentUser.uid ? 'me' : ''}`;
+            div.innerHTML = `
+                <div class="msg-header">
+                    <b>${escape(m.user)}</b>
+                    <span class="msg-time">${timeStr}</span>
+                </div>
+                <span>${escape(m.text)}</span>
+            `;
+            cont.appendChild(div);
+        });
+        
+        cont.scrollTop = cont.scrollHeight;
+
+        if (!isFirstLoad && latestMsg && latestMsg.uid !== currentUser.uid) {
+            if (!chatActive) {
+                document.getElementById('tab-btn-chat').classList.add('unread');
+                showToast(escape(latestMsg.user), escape(latestMsg.text));
+            }
         }
+        isFirstLoad = false;
+    });
+                     }
 
         window.sendMsg = () => {
             const inp = document.getElementById('chat-input'); if(!inp.value.trim() || !currentUser) return;
