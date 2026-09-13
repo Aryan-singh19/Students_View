@@ -1,188 +1,116 @@
-<div align="center"> 
+<div align="center">
 
-<h1>🎓 Theory of Computation: Intel igent Tracker</h1> 
+# 🎓 Theory of Computation: Intelligent Tracker
 
-<p> <strong>A YouTube-style learning environment with integrated attention-tracking and academic integrity enforcement.</strong> </p> 
+**A YouTube-style learning environment with integrated attention-tracking and academic integrity enforcement.**
 
-<p> <a href="https://aryan-singh19.github.io/Students_View/"><strong>🚀 Launch Live Application</strong></a> · <a href="\#-key-features">Explore Features</a> · <a href="\#-technical-architecture">Technical Architecture</a> </p> 
+[![Launch App](https://img.shields.io/badge/Launch-Live_Demo-success?style=for-the-badge&logo=githubpages&logoColor=white)](https://aryan-singh19.github.io/Students_View/)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)](https://github.com/aryan-singh19/Students_View)
+[![Focus](https://img.shields.io/badge/Focus-Academic-blue?style=for-the-badge)](https://github.com/aryan-singh19/Students_View)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-<p> <img 
+<p>
+  <a href="#-overview">Overview</a> •
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-technical-architecture">Technical Architecture</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-troubleshooting">Troubleshooting</a>
+</p>
 
-src="https://www.google.com/search?q=https://img.shields.io/badge/Status-Active-success%3F
+</div>
 
-style%3Dfor-the-badge" alt="Status" /> <img src="https://www.google.com/search?q=https://img.shields.io/badge/Focus-Academic-blue%3Fs tyle%3Dfor-the-badge" alt="Focus" /> <img src="https://www.google.com/search?q=https://img.shields.io/badge/License-MIT-yel ow%3Fstyl e%3Dfor-the-badge" alt="License" /> </p> 
+---
 
-<br /> </div> 
+## 📖 Overview
 
-📖** Overview **
+The **Theory of Computation Tracker** is a compliance-focused **Learning Management System (LMS) module** designed to solve the problem of passive video consumption in online learning.
 
-The **Theory of Computation Tracker** is not just a video player; it is a **compliance-focused** **Learning Management System \(LMS\) module**. 
+By integrating directly with modern browser lifecycle events, the tracker measures user engagement with second-by-second granularity. It prevents background playback, enforces continuous focus, and verifies that students actively watch lecture material before producing an exportable proof-of-completion report.
 
-Designed to solve the problem of passive consumption in online learning, this tool tracks user engagement with **second-by-second precision**. It utilizes the browser's DOM events to prevent background playback, ensuring that students are actively viewing the lecture material before generating a signed progress report. 
+---
 
-🎯** Key Features **
+## 🎯 Key Features
 
-🖥** Immersive Interface **
+### 🖥️ Immersive Interface
+* **Dark Mode Native:** A sleek, high-contrast UI inspired by modern streaming platforms, engineered to reduce visual fatigue during dense proof-and-code lectures.
+* **Responsive Playlist:** Dynamic sidebar navigation with real-time video thumbnail updates and completion indicators.
 
-● **Dark Mode Native:** A sleek, high-contrast UI inspired by premium streaming platforms, designed to reduce eye strain during long coding lectures. 
+### 🛡️ Academic Integrity (Anti-Cheat)
+* **Visibility-Based Auto-Pause:** Utilizes the **Page Visibility API** (`document.hidden`) to automatically freeze playback whenever the user switches tabs, minimizes the browser, or covers the window.
+* **No-Skip Policy:** Manages scrubber behavior to encourage linear consumption of complex theoretical topics.
 
-● **Responsive Playlist:** Sidebar navigation with real-time thumbnail updates. 
+### 📊 Granular Analytics
+* **Real-Time Persistence:** Saves playback position and metrics to `localStorage` every second—safeguarding against accidental tab closure.
+* **Visual Feedback:** Dynamic progress bars overlay on video thumbnails in the sidebar.
+* **Verifiable Reports:** Generates a downloadable `.txt` report card summarizing viewed intervals for class submission.
 
-🛡** Academic Integrity \(Anti-Cheat\) **
+---
 
-● **Focus Enforcement:** Leveraging the **Page Visibility API**, the video automatical y pauses if the user switches tabs, minimizes the browser, or covers the window. 
+## 🛠️ Technical Architecture
 
-● **No-Skip Policy:** Scrubbing controls are managed to encourage linear consumption of complex theoretical topics. 
+Built purely with **Vanilla JavaScript** to ensure maximum performance and zero external dependencies.
 
-📊** Granular Analytics **
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Frontend** | HTML5 / CSS3 | Responsive Flexbox/Grid layout with custom CSS variables for theming. |
+| **Logic** | ES6+ JavaScript | Handles state management, lifecycle event listeners, and DOM updates. |
+| **Video Engine** | YouTube IFrame API | Programmatic control over playback states, timing loops, and auto-pause triggers. |
+| **State** | `localStorage` | Persists user session and progress timestamps across reloads without a backend database. |
+| **Sensors** | `document.hidden` | Detects tab-switching and window-blur events to trigger the auto-pause mechanic. |
 
-● **Real-Time Persistence:** Progress is saved to localStorage every second. Closing the browser doesn't mean losing your place. 
+---
 
-● **Visual Feedback:** Dynamic progress bars overlay on video thumbnails in the sidebar. 
+## 🚀 Getting Started
 
-● **Verifiable Reports:** Generates a downloadable .txt report card with a cryptographic-style summary of watched content for submission. 
+### Prerequisites
+No installation is required to use the tracker; it is a fully client-side web application.
 
-🛠** Technical Architecture** This project is built with **Vanilla JavaScript** to ensure maximum performance and zero dependencies. 
+### Usage Guide
+1. **Launch:** Access the [Hosted Tracker](https://aryan-singh19.github.io/Students_View/).
+2. **Select:** Choose a lecture from the "Theory of Computation" playlist on the right.
+3. **Watch:** Keep the tab **focused**.
+   > *Note: If you switch tabs to check Discord or Instagram, the video will pause immediately.*
+4. **Track:** Observe the progress bar filling up on the sidebar thumbnail in real time.
+5. **Export:** Navigate to the **Analytics & Download** tab and click **Download Progress Report** to generate your submission file.
 
-Component 
+### Local Development (Optional)
 
-Technology 
+If you wish to modify the code or contribute:
 
-Role 
+# Clone the repository
+git clone https://github.com/aryan-singh19/Students_View.git
 
-**Frontend **
+# Navigate to the directory
+cd Students_View
 
-HTML5 / CSS3 
+# Open index.html in your browser OR use a local server (recommended for API origin stability)
+npx serve .
 
-Responsive Flexbox/Grid layout 
+```
 
-with custom CSS variables for 
+## 📂 Project Structure
 
-theming. 
+Students_View/
+├── index.html       # Main entry point and layout structure
+├── style.css        # Custom dark-mode styling and animations
+├── script.js        # Core logic: API integration, focus tracking, and analytics
+├── assets/          # Icons and static resources
+└── README.md        # Documentation
 
-**Logic **
+```
 
-ES6\+ JavaScript 
+## ⚠️ Troubleshooting
 
-Handles state management, 
+* **Progress not saving?** Ensure you are not using **Incognito/Private Mode**, as `localStorage` is cleared automatically when the tab closes in private sessions.
+* **Video not playing?** Some ad-blockers or privacy extensions interfere with the YouTube IFrame API. Whitelist the domain or temporarily disable blockers if playback fails to initialize.
 
-event listeners, and DOM 
+---
 
-manipulation. 
+<div align="center">
 
-**Video Engine **
+Made with ❤️ for the Theory of Computation Class  
+**[View Developer Profile](https://github.com/aryan-singh19)**
 
-**YouTube IFrame API **
-
-Al ows programmatic control 
-
-over the video player \(pause, 
-
-play, get time\). 
-
-**State **
-
-localStorage 
-
-Persists user data across 
-
-sessions without a backend 
-
-database. 
-
-**Sensors **
-
-document.hidden 
-
-Detects tab switching events to 
-
-trigger the auto-pause 
-
-mechanic. 
-
-🚀** Getting Started **
-
-**Prerequisites **
-
-No instal ation is required to use the tracker. It is a client-side web application. 
-
-**Usage Guide **
-
-1. **Launch:** Open the Hosted Tracker. 
-
-2. **Select:** Choose a lecture from the "Theory of Computation" playlist on the right. 
-
-3. **Watch:** Keep the tab **focused**. 
-
-○ *Note: If you switch tabs to check Discord or Instagram, the video wil pause* *immediately. *
-
-4. **Track:** Observe the progress bar fil ing up on the sidebar thumbnail. 
-
-5. **Export:** Navigate to the **"Analytics & Download" ** tab and click **"Download Progress** **Report" ** to generate your submission file. 
-
-**Local Development \(Optional\) **
-
-If you wish to modify the code or contribute: 
-
-\# Clone the repository 
-
-git clone 
-
-\[https://github.com/aryan-singh19/Students\_View.git\]\(https://github.co m/aryan-singh19/Students\_View.git\) 
-
-
-
-\# Navigate to the directory cd Students\_View 
-
-
-
-\# Open index.html in your browser 
-
-\# OR use a simple http server \(recommended for API stability\) npx serve . 
-
-
-
-📂** Project Structure **
-
-Students\_View/ 
-
-├── index.html \# Main entry point and layout structure 
-
-├── style.css \# Custom dark-mode styling and animations 
-
-├── script.js \# Core logic: API integration, focus tracking, and analytics 
-
-├── assets/ \# Icons and static resources 
-
-└── README.md \# Documentation 
-
-
-
-⚠** Troubleshooting **
-
-● **Progress not saving? ** Ensure you are not using **Incognito/Private Mode**, as localStorage is cleared when the tab closes in private windows. 
-
-● **Video not playing? ** Some ad-blockers may interfere with the YouTube IFrame API. Try disabling them for this site if issues persist. 
-
-<div align="center"> <p>Made with ❤ for the Theory of Computation Class</p> <p> <a href="https://www.google.com/search?q=https://github.com/aryan-singh19"><strong>View Profile</strong></a> </p> </div> 
-
-
-# Document Outline
-
-+ 📖 Overview  
-+ 🎯 Key Features   
-	+ 🖥️ Immersive Interface  
-	+ 🛡️ Academic Integrity \(Anti-Cheat\)  
-	+ 📊 Granular Analytics  
-
-+ 🛠️ Technical Architecture  
-+ 🚀 Getting Started   
-	+ Prerequisites  
-	+ Usage Guide  
-	+ Local Development \(Optional\)  
-
-+ 📂 Project Structure  
-+ ⚠️ Troubleshooting
-
+</div>
 
 
